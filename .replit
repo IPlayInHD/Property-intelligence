@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "postgresql-16"]
+modules = ["nodejs-24", "postgresql-16", "python-3.11"]
 
 [deployment]
 router = "application"
@@ -37,4 +37,3 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-JWT_SECRET = "6ac8df74a5753e3732da3807629c0effb7e5627922a27f29a0371bfc7e99f066a9bc2ad3971a22d2d9228e95a46933cd"

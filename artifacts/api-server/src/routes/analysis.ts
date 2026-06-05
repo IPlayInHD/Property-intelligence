@@ -218,21 +218,18 @@ router.get("/analysis/:id/report", requireAuth, async (req: AuthRequest, res) =>
 
     if (results?.forecast) {
       const fc = results.forecast as Record<string, unknown>;
-      const scenarios = fc.scenarios as Array<Record<string, unknown>> | undefined;
+      type ScenarioShape = { annualRate?: number; year1Value?: number; year3Value?: number; year5Value?: number; year3Change?: number; year5Change?: number; keyAssumption?: string };
+      const bear = fc.bear as ScenarioShape | undefined;
+      const base = fc.base as ScenarioShape | undefined;
+      const bull = fc.bull as ScenarioShape | undefined;
       doc.fontSize(14).fillColor("#0A8A8A").text("Module 3 — Price Forecast");
       doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke("#C8960C").moveDown(0.3);
       doc.fontSize(11).fillColor("#333");
-      doc.text(`Market Phase: ${fc.marketPhase ?? "—"} | Confidence: ${fc.confidenceLevel ?? "—"}`);
-      if (scenarios?.length) {
-        for (const sc of scenarios) {
-          const vals = (sc.values as number[]) ?? [];
-          const last = vals[vals.length - 1];
-          doc.text(`  ${sc.label}: ${last !== undefined ? `AED ${Math.round(last).toLocaleString()}/sqft (${sc.years}yr)` : "—"}`);
-        }
-      }
-      if (fc.keyDrivers) {
-        doc.text(`Key Drivers: ${(fc.keyDrivers as string[]).join(", ")}`);
-      }
+      if (fc.warning) doc.text(`Note: ${fc.warning}`);
+      if (bear) doc.text(`Bear case: ${bear.annualRate ?? 0}%/yr → AED ${(bear.year3Value ?? 0).toLocaleString()} (3yr, ${bear.year3Change ?? 0}%)`);
+      if (base) doc.text(`Base case: ${base.annualRate ?? 0}%/yr → AED ${(base.year3Value ?? 0).toLocaleString()} (3yr, +${base.year3Change ?? 0}%)`);
+      if (bull) doc.text(`Bull case: ${bull.annualRate ?? 0}%/yr → AED ${(bull.year3Value ?? 0).toLocaleString()} (3yr, +${bull.year3Change ?? 0}%)`);
+      if (base?.keyAssumption) doc.text(`Key assumption: ${base.keyAssumption}`);
       doc.moveDown();
     }
 
@@ -241,21 +238,33 @@ router.get("/analysis/:id/report", requireAuth, async (req: AuthRequest, res) =>
       doc.fontSize(14).fillColor("#0A8A8A").text("Module 4 — Liquidity Score  [Pro]");
       doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke("#C8960C").moveDown(0.3);
       doc.fontSize(11).fillColor("#333");
-      doc.text(`Liquidity Score: ${liq.liquidityScore}/100 — ${liq.liquidityCategory}`);
-      doc.text(`Est. Days to Sell: ${liq.estimatedDaysToSell} | 90-day Velocity: ${liq.transactionVelocity90d} transactions`);
-      doc.text(`Avg Discount to Ask: ${liq.avgDiscountToAsk}%`);
+      doc.text(`Score: ${liq.score}/10 — ${liq.label}`);
+      doc.text(`90-day Transactions: ${liq.transactionsLast90Days ?? "—"} | Avg Days on Market: ${liq.avgDaysOnMarket ?? "N/A"}`);
+      if (liq.activeListingsCount !== null && liq.activeListingsCount !== undefined) {
+        doc.text(`Active Listings: ${liq.activeListingsCount}`);
+      }
+      if (liq.warning) doc.text(`Note: ${liq.warning}`);
       doc.moveDown();
     }
 
-    if (results?.neighbourhoodTrends) {
-      const tr = results.neighbourhoodTrends as Record<string, unknown>;
+    if (results?.trends) {
+      const tr = results.trends as Record<string, unknown>;
+      const profile = tr.communityProfile as Record<string, unknown> | undefined;
       doc.fontSize(14).fillColor("#0A8A8A").text("Module 6 — Neighbourhood Trends");
       doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke("#C8960C").moveDown(0.3);
       doc.fontSize(11).fillColor("#333");
-      doc.text(`Price Trend (1yr): ${(tr.priceChangePct1yr as number) >= 0 ? "+" : ""}${tr.priceChangePct1yr}%`);
-      doc.text(`Price Trend (3yr): ${(tr.priceChangePct3yr as number) >= 0 ? "+" : ""}${tr.priceChangePct3yr}%`);
-      doc.text(`Rental Trend (1yr): ${(tr.rentalChangePct1yr as number) >= 0 ? "+" : ""}${tr.rentalChangePct1yr}%`);
-      doc.text(`Supply Pipeline: ${tr.supplyPipeline ?? "—"}`);
+      if (profile?.threeYearGrowth !== null && profile?.threeYearGrowth !== undefined) {
+        const growth = profile.threeYearGrowth as number;
+        doc.text(`3-year price growth: ${growth >= 0 ? "+" : ""}${growth}%`);
+      }
+      if (profile?.mostCommonType) doc.text(`Most common type: ${profile.mostCommonType}`);
+      if (profile?.avgHoldingPeriod) doc.text(`Average holding period: ${profile.avgHoldingPeriod}`);
+      const qData = tr.quarterlyData as Array<{ period: string; avgPsf: number | null }> | undefined;
+      if (qData?.length) {
+        const latest = [...qData].reverse().find((q) => q.avgPsf !== null);
+        if (latest) doc.text(`Latest avg PSF (${latest.period}): AED ${latest.avgPsf?.toLocaleString()}/sqft`);
+      }
+      if (tr.warning) doc.text(`Note: ${tr.warning}`);
       doc.moveDown();
     }
 
