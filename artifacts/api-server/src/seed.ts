@@ -31,19 +31,39 @@ const COMMUNITIES = [
 ];
 
 const MACRO_DATA = [
-  { metricName: "policy_rate", metricValue: "5.4", period: "2025-Q1", source: "CBUAE" },
-  { metricName: "inflation_rate", metricValue: "2.1", period: "2025-Q1", source: "CBUAE" },
-  { metricName: "money_supply_growth", metricValue: "3.8", period: "2025-Q1", source: "CBUAE" },
+  { metricName: "policy_rate", metricValue: "5.4", period: "2024-Q4", source: "CBUAE" },
+  { metricName: "inflation_rate", metricValue: "2.1", period: "2024-Q4", source: "CBUAE" },
+  { metricName: "money_supply_growth", metricValue: "3.8", period: "2024-Q4", source: "CBUAE" },
   { metricName: "gdp_growth", metricValue: "3.9", period: "2024", source: "World Bank" },
-  { metricName: "mortgage_rate_avg", metricValue: "4.49", period: "2025-Q1", source: "CBUAE" },
+  { metricName: "mortgage_rate_avg", metricValue: "4.49", period: "2024-Q4", source: "CBUAE" },
+  { metricName: "policy_rate", metricValue: "5.4", period: "2024-Q3", source: "CBUAE" },
+  { metricName: "inflation_rate", metricValue: "2.3", period: "2024-Q3", source: "CBUAE" },
+  { metricName: "money_supply_growth", metricValue: "4.1", period: "2024-Q3", source: "CBUAE" },
+  { metricName: "mortgage_rate_avg", metricValue: "4.75", period: "2024-Q3", source: "CBUAE" },
+  { metricName: "gdp_growth", metricValue: "3.4", period: "2023", source: "World Bank" },
 ];
 
 const SERVICE_CHARGES = [
-  { buildingName: "Marina Gate", community: "Dubai Marina", emirate: "Dubai", chargePerSqft: "18.5", source: "RERA" },
+  { buildingName: "Marina Gate 1", community: "Dubai Marina", emirate: "Dubai", chargePerSqft: "18.5", source: "RERA" },
+  { buildingName: "Marina Gate 2", community: "Dubai Marina", emirate: "Dubai", chargePerSqft: "19.0", source: "RERA" },
+  { buildingName: "Cayan Tower", community: "Dubai Marina", emirate: "Dubai", chargePerSqft: "21.5", source: "RERA" },
   { buildingName: "The Address Downtown", community: "Downtown Dubai", emirate: "Dubai", chargePerSqft: "35.0", source: "RERA" },
+  { buildingName: "Burj Vista", community: "Downtown Dubai", emirate: "Dubai", chargePerSqft: "28.0", source: "RERA" },
+  { buildingName: "The Residences", community: "Downtown Dubai", emirate: "Dubai", chargePerSqft: "26.5", source: "RERA" },
   { buildingName: "Jumeirah Bay X1", community: "JBR", emirate: "Dubai", chargePerSqft: "22.0", source: "RERA" },
-  { buildingName: "Damac Maison", community: "Business Bay", emirate: "Dubai", chargePerSqft: "20.0", source: "RERA" },
-  { buildingName: "Maple", community: "Arabian Ranches", emirate: "Dubai", chargePerSqft: "5.0", source: "RERA" },
+  { buildingName: "Bahar 3", community: "JBR", emirate: "Dubai", chargePerSqft: "20.5", source: "RERA" },
+  { buildingName: "Sadaf 5", community: "JBR", emirate: "Dubai", chargePerSqft: "19.5", source: "RERA" },
+  { buildingName: "Damac Maison Canal Views", community: "Business Bay", emirate: "Dubai", chargePerSqft: "20.0", source: "RERA" },
+  { buildingName: "Executive Bay A", community: "Business Bay", emirate: "Dubai", chargePerSqft: "17.0", source: "RERA" },
+  { buildingName: "Maple 1", community: "Arabian Ranches", emirate: "Dubai", chargePerSqft: "5.0", source: "RERA" },
+  { buildingName: "Maple 2", community: "Arabian Ranches", emirate: "Dubai", chargePerSqft: "5.2", source: "RERA" },
+  { buildingName: "Park Lane", community: "JVC", emirate: "Dubai", chargePerSqft: "12.0", source: "RERA" },
+  { buildingName: "Belgravia 2", community: "JVC", emirate: "Dubai", chargePerSqft: "11.5", source: "RERA" },
+  { buildingName: "Gate Tower 1", community: "Al Reem Island", emirate: "Abu Dhabi", chargePerSqft: "16.0", source: "RERA" },
+  { buildingName: "Sun Tower", community: "Al Reem Island", emirate: "Abu Dhabi", chargePerSqft: "15.5", source: "RERA" },
+  { buildingName: "Khalidiyah Palace", community: "Saadiyat Island", emirate: "Abu Dhabi", chargePerSqft: "24.0", source: "RERA" },
+  { buildingName: "Frond N Villa", community: "Palm Jumeirah", emirate: "Dubai", chargePerSqft: "7.5", source: "RERA" },
+  { buildingName: "Shoreline Apt Block 4", community: "Palm Jumeirah", emirate: "Dubai", chargePerSqft: "16.0", source: "RERA" },
 ];
 
 // Sample DLD transactions for demo purposes

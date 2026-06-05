@@ -18,7 +18,7 @@ const formSchema = z.object({
 });
 
 export default function Login() {
-  const { login } = useAuth();
+  const { onLoginSuccess } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -32,8 +32,8 @@ export default function Login() {
 
   const loginMutation = useLogin({
     mutation: {
-      onSuccess: (data) => {
-        login(data.token);
+      onSuccess: () => {
+        onLoginSuccess();
         setLocation("/dashboard");
         toast({ title: "Welcome back!" });
       },

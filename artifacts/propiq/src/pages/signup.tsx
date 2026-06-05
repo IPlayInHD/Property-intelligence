@@ -21,7 +21,7 @@ const formSchema = z.object({
 });
 
 export default function Signup() {
-  const { login } = useAuth();
+  const { onLoginSuccess } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -37,8 +37,8 @@ export default function Signup() {
 
   const registerMutation = useRegister({
     mutation: {
-      onSuccess: (data) => {
-        login(data.token);
+      onSuccess: () => {
+        onLoginSuccess();
         setLocation("/dashboard");
         toast({ title: "Account created successfully" });
       },

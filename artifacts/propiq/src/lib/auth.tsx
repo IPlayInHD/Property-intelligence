@@ -1,45 +1,37 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useCallback } from "react";
 import { useGetMe, User, getGetMeQueryKey } from "@workspace/api-client-react";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (token: string) => void;
-  logout: () => void;
+  onLoginSuccess: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(localStorage.getItem("propiq_token"));
-  
-  // Set the token getter for the API client
-  useEffect(() => {
-    setAuthTokenGetter(() => localStorage.getItem("propiq_token"));
-  }, []);
+  const queryClient = useQueryClient();
 
-  const { data: user, isLoading, refetch } = useGetMe({
+  const { data: user, isLoading } = useGetMe({
     query: {
       queryKey: getGetMeQueryKey(),
-      enabled: !!token,
       retry: false,
     }
   });
 
-  const login = (newToken: string) => {
-    localStorage.setItem("propiq_token", newToken);
-    setToken(newToken);
-    refetch();
-  };
+  const onLoginSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+  }, [queryClient]);
 
-  const logout = () => {
-    localStorage.removeItem("propiq_token");
-    setToken(null);
-  };
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    queryClient.clear();
+  }, [queryClient]);
 
   return (
-    <AuthContext.Provider value={{ user: user || null, isLoading: isLoading && !!token, login, logout }}>
+    <AuthContext.Provider value={{ user: user || null, isLoading, onLoginSuccess, logout }}>
       {children}
     </AuthContext.Provider>
   );

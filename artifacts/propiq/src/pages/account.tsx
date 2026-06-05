@@ -254,7 +254,7 @@ export default function Account() {
           <Button
             variant="outline"
             className="w-full border-destructive/30 text-destructive hover:bg-destructive/10"
-            onClick={() => { logout(); }}
+            onClick={() => { void logout(); }}
             data-testid="button-logout"
           >
             Sign Out
