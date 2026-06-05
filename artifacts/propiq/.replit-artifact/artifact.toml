@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "PropIQ"
+version = "1.0.0"
+id = "artifacts/propiq"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25221
+
+[services.development]
+run = "pnpm --filter @workspace/propiq run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/propiq", "run", "build" ]
+publicDir = "artifacts/propiq/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25221"
+BASE_PATH = "/"

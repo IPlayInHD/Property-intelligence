@@ -3,13 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: PropIQ UAE Property Intelligence Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: analysis
+    description: Property analysis operations
+  - name: modules
+    description: Analytical module operations
+  - name: data
+    description: Reference data operations
+  - name: scrape
+    description: Listing scraper operations
+  - name: user
+    description: User profile and subscription operations
 paths:
   /healthz:
     get:
@@ -24,6 +36,543 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ANALYSIS
+  /analysis:
+    post:
+      operationId: createAnalysis
+      tags: [analysis]
+      summary: Create a new property analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "201":
+          description: Analysis created and queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Tier limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analysis/history:
+    get:
+      operationId: getAnalysisHistory
+      tags: [analysis]
+      summary: Get user's analysis history
+      responses:
+        "200":
+          description: List of analyses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnalysisSummary"
+
+  /analysis/{id}:
+    get:
+      operationId: getAnalysis
+      tags: [analysis]
+      summary: Get a completed analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAnalysis
+      tags: [analysis]
+      summary: Delete an analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /analysis/{id}/report:
+    get:
+      operationId: downloadReport
+      tags: [analysis]
+      summary: Download PDF report for an analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # MODULES
+  /modules/price-fairness:
+    post:
+      operationId: runPriceFairness
+      tags: [modules]
+      summary: Run price fairness analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "200":
+          description: Price fairness result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceFairnessResult"
+
+  /modules/qol-score:
+    post:
+      operationId: runQolScore
+      tags: [modules]
+      summary: Run quality of life score
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "200":
+          description: QoL score result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QolScoreResult"
+
+  /modules/forecast:
+    post:
+      operationId: runForecast
+      tags: [modules]
+      summary: Run scenario forecast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "200":
+          description: Forecast result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastResult"
+
+  /modules/liquidity:
+    post:
+      operationId: runLiquidity
+      tags: [modules]
+      summary: Run liquidity score (Pro tier only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "200":
+          description: Liquidity result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiquidityResult"
+        "403":
+          description: Pro tier required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /modules/rental-yield:
+    post:
+      operationId: runRentalYield
+      tags: [modules]
+      summary: Run rental yield calculation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "200":
+          description: Rental yield result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalYieldResult"
+
+  /modules/trends:
+    post:
+      operationId: runTrends
+      tags: [modules]
+      summary: Run neighbourhood trend analytics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "200":
+          description: Trends result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendsResult"
+
+  # DATA
+  /data/communities:
+    get:
+      operationId: getCommunities
+      tags: [data]
+      summary: List all UAE communities
+      parameters:
+        - name: emirate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of communities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Community"
+
+  /data/market-rents:
+    get:
+      operationId: getMarketRents
+      tags: [data]
+      summary: Get RERA rental index data
+      parameters:
+        - name: community
+          in: query
+          schema:
+            type: string
+        - name: emirate
+          in: query
+          schema:
+            type: string
+        - name: bedrooms
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market rent data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketRent"
+
+  /data/transactions:
+    get:
+      operationId: getTransactions
+      tags: [data]
+      summary: Get DLD transaction data
+      parameters:
+        - name: community
+          in: query
+          schema:
+            type: string
+        - name: property_type
+          in: query
+          schema:
+            type: string
+        - name: bedrooms
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Transaction data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DldTransaction"
+
+  /data/market-overview:
+    get:
+      operationId: getMarketOverview
+      tags: [data]
+      summary: Get aggregated UAE market overview stats
+      responses:
+        "200":
+          description: Market overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketOverview"
+
+  /data/top-communities:
+    get:
+      operationId: getTopCommunities
+      tags: [data]
+      summary: Get top communities by transaction volume
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Top communities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommunityStats"
+
+  # SCRAPE
+  /scrape/listing-url:
+    post:
+      operationId: scrapeListingUrl
+      tags: [scrape]
+      summary: Scrape a Bayut/PF/Dubizzle URL and return property details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeInput"
+      responses:
+        "200":
+          description: Scraped property details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapedProperty"
+        "400":
+          description: Could not scrape URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # USER
+  /user/profile:
+    get:
+      operationId: getUserProfile
+      tags: [user]
+      summary: Get user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    put:
+      operationId: updateUserProfile
+      tags: [user]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /user/subscription:
+    get:
+      operationId: getUserSubscription
+      tags: [user]
+      summary: Get user subscription details
+      responses:
+        "200":
+          description: Subscription info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  /user/upgrade:
+    post:
+      operationId: upgradePlan
+      tags: [user]
+      summary: Upgrade subscription plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradeInput"
+      responses:
+        "200":
+          description: Plan upgraded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          description: Payment error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +583,599 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: ["string", "null"]
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: ["string", "null"]
+      required:
+        - success
+
+    # AUTH SCHEMAS
+    RegisterInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [investor, agent, buyer, general]
+      required:
+        - email
+        - password
+        - fullName
+        - role
+
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+        plan:
+          type: string
+          enum: [starter, analyst, pro]
+        analysesUsedThisMonth:
+          type: integer
+        planResetDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - email
+        - fullName
+        - role
+        - plan
+        - analysesUsedThisMonth
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [investor, agent, buyer, general]
+
+    Subscription:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [starter, analyst, pro]
+        analysesUsedThisMonth:
+          type: integer
+        analysesLimit:
+          type: ["integer", "null"]
+        planResetDate:
+          type: ["string", "null"]
+        modules:
+          type: array
+          items:
+            type: string
+      required:
+        - plan
+        - analysesUsedThisMonth
+        - modules
+
+    UpgradeInput:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [starter, analyst, pro]
+        paymentMethodId:
+          type: ["string", "null"]
+      required:
+        - plan
+
+    # PROPERTY INPUT
+    PropertyInput:
+      type: object
+      properties:
+        propertyType:
+          type: string
+          enum: [apartment, villa, townhouse, penthouse, studio]
+        emirate:
+          type: string
+          enum: [Dubai, "Abu Dhabi", Sharjah, RAK, Ajman]
+        community:
+          type: string
+        buildingName:
+          type: ["string", "null"]
+        floorNumber:
+          type: ["integer", "null"]
+        sizeSqft:
+          type: number
+        bedrooms:
+          type: integer
+          minimum: 0
+        bathrooms:
+          type: ["integer", "null"]
+        listedPrice:
+          type: number
+        listingType:
+          type: string
+          enum: [sale, rent]
+        viewType:
+          type: string
+          enum: [Sea, Marina, Community, Garden, City, None]
+        parkingIncluded:
+          type: boolean
+        furnished:
+          type: string
+          enum: [Yes, No, Partial]
+        yearBuilt:
+          type: ["integer", "null"]
+      required:
+        - propertyType
+        - emirate
+        - community
+        - sizeSqft
+        - bedrooms
+        - listedPrice
+        - listingType
+
+    # ANALYSIS SCHEMAS
+    Analysis:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        propertyData:
+          $ref: "#/components/schemas/PropertyInput"
+        results:
+          $ref: "#/components/schemas/AnalysisResults"
+        status:
+          type: string
+          enum: [pending, complete, failed]
+        overallScore:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - propertyData
+        - status
+        - createdAt
+
+    AnalysisSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        community:
+          type: string
+        emirate:
+          type: string
+        propertyType:
+          type: string
+        bedrooms:
+          type: integer
+        listedPrice:
+          type: number
+        overallScore:
+          type: ["number", "null"]
+        status:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - community
+        - propertyType
+        - bedrooms
+        - listedPrice
+        - status
+        - createdAt
+
+    AnalysisResults:
+      type: object
+      properties:
+        priceFairness:
+          $ref: "#/components/schemas/PriceFairnessResult"
+        qolScore:
+          $ref: "#/components/schemas/QolScoreResult"
+        forecast:
+          $ref: "#/components/schemas/ForecastResult"
+        liquidity:
+          $ref: "#/components/schemas/LiquidityResult"
+        rentalYield:
+          $ref: "#/components/schemas/RentalYieldResult"
+        trends:
+          $ref: "#/components/schemas/TrendsResult"
+
+    # MODULE RESULT SCHEMAS
+    PriceFairnessResult:
+      type: object
+      properties:
+        fairnessScore:
+          type: number
+        verdict:
+          type: string
+        listedPsf:
+          type: number
+        benchmarkPsf:
+          type: number
+        adjustedBenchmarkPsf:
+          type: number
+        comparables:
+          type: array
+          items:
+            $ref: "#/components/schemas/DldTransaction"
+        dataQuality:
+          type: string
+        warning:
+          type: ["string", "null"]
+      required:
+        - fairnessScore
+        - verdict
+        - listedPsf
+        - benchmarkPsf
+        - adjustedBenchmarkPsf
+        - comparables
+        - dataQuality
+
+    QolScoreResult:
+      type: object
+      properties:
+        totalScore:
+          type: number
+        transportScore:
+          type: number
+        educationScore:
+          type: number
+        healthcareScore:
+          type: number
+        retailScore:
+          type: number
+        recreationScore:
+          type: number
+        noiseScore:
+          type: number
+        amenitiesData:
+          type: object
+        warning:
+          type: ["string", "null"]
+      required:
+        - totalScore
+        - transportScore
+        - educationScore
+        - healthcareScore
+        - retailScore
+        - recreationScore
+        - noiseScore
+
+    ForecastScenario:
+      type: object
+      properties:
+        annualRate:
+          type: number
+        year1Value:
+          type: number
+        year3Value:
+          type: number
+        year5Value:
+          type: number
+        year3Change:
+          type: number
+        year5Change:
+          type: number
+        keyAssumption:
+          type: string
+      required:
+        - annualRate
+        - year1Value
+        - year3Value
+        - year5Value
+        - year3Change
+        - year5Change
+        - keyAssumption
+
+    ForecastResult:
+      type: object
+      properties:
+        bear:
+          $ref: "#/components/schemas/ForecastScenario"
+        base:
+          $ref: "#/components/schemas/ForecastScenario"
+        bull:
+          $ref: "#/components/schemas/ForecastScenario"
+        chartData:
+          type: array
+          items:
+            type: object
+        warning:
+          type: ["string", "null"]
+      required:
+        - bear
+        - base
+        - bull
+        - chartData
+
+    LiquidityResult:
+      type: object
+      properties:
+        score:
+          type: number
+        label:
+          type: string
+        avgDaysOnMarket:
+          type: ["number", "null"]
+        transactionsLast90Days:
+          type: integer
+        activeListingsCount:
+          type: ["integer", "null"]
+        investorRatio:
+          type: ["number", "null"]
+        warning:
+          type: ["string", "null"]
+      required:
+        - score
+        - label
+        - transactionsLast90Days
+
+    RentalYieldResult:
+      type: object
+      properties:
+        grossYield:
+          type: number
+        netYield:
+          type: number
+        marketRentAnnual:
+          type: number
+        serviceChargeAnnual:
+          type: number
+        vacancyDeduction:
+          type: number
+        managementFee:
+          type: number
+        maintenanceReserve:
+          type: number
+        netIncome:
+          type: number
+        agencyManaged:
+          type: boolean
+        warning:
+          type: ["string", "null"]
+      required:
+        - grossYield
+        - netYield
+        - marketRentAnnual
+        - serviceChargeAnnual
+        - vacancyDeduction
+        - managementFee
+        - maintenanceReserve
+        - netIncome
+        - agencyManaged
+
+    TrendsQuarterlyData:
+      type: object
+      properties:
+        period:
+          type: string
+        avgPsf:
+          type: ["number", "null"]
+        transactionCount:
+          type: ["integer", "null"]
+      required:
+        - period
+
+    TrendsResult:
+      type: object
+      properties:
+        quarterlyData:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendsQuarterlyData"
+        communityProfile:
+          type: object
+        supplyPipeline:
+          type: ["integer", "null"]
+        priceGrowthRank:
+          type: ["integer", "null"]
+        totalCommunitiesTracked:
+          type: ["integer", "null"]
+        warning:
+          type: ["string", "null"]
+      required:
+        - quarterlyData
+        - communityProfile
+
+    # DATA SCHEMAS
+    Community:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        emirate:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        zone:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - emirate
+        - latitude
+        - longitude
+
+    DldTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        transactionId:
+          type: ["string", "null"]
+        community:
+          type: string
+        buildingName:
+          type: ["string", "null"]
+        propertyType:
+          type: string
+        bedrooms:
+          type: ["integer", "null"]
+        sizeSqft:
+          type: ["number", "null"]
+        salePrice:
+          type: number
+        pricePerSqft:
+          type: ["number", "null"]
+        transactionDate:
+          type: string
+        emirate:
+          type: string
+        floorNumber:
+          type: ["integer", "null"]
+      required:
+        - id
+        - community
+        - propertyType
+        - salePrice
+        - transactionDate
+        - emirate
+
+    MarketRent:
+      type: object
+      properties:
+        community:
+          type: string
+        emirate:
+          type: string
+        bedrooms:
+          type: integer
+        annualRent:
+          type: number
+        sqftBand:
+          type: ["string", "null"]
+        source:
+          type: string
+      required:
+        - community
+        - emirate
+        - bedrooms
+        - annualRent
+        - source
+
+    MarketOverview:
+      type: object
+      properties:
+        totalTransactionsAllTime:
+          type: integer
+        avgPsfDubai:
+          type: ["number", "null"]
+        topCommunity:
+          type: ["string", "null"]
+        avgGrossYield:
+          type: ["number", "null"]
+        lastUpdated:
+          type: string
+      required:
+        - totalTransactionsAllTime
+        - lastUpdated
+
+    CommunityStats:
+      type: object
+      properties:
+        community:
+          type: string
+        emirate:
+          type: string
+        transactionCount:
+          type: integer
+        avgPsf:
+          type: ["number", "null"]
+        growth3yr:
+          type: ["number", "null"]
+      required:
+        - community
+        - emirate
+        - transactionCount
+
+    ScrapeInput:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+      required:
+        - url
+
+    ScrapedProperty:
+      type: object
+      properties:
+        price:
+          type: ["number", "null"]
+        sizeSqft:
+          type: ["number", "null"]
+        bedrooms:
+          type: ["integer", "null"]
+        bathrooms:
+          type: ["integer", "null"]
+        community:
+          type: ["string", "null"]
+        buildingName:
+          type: ["string", "null"]
+        propertyType:
+          type: ["string", "null"]
+        emirate:
+          type: ["string", "null"]
+        listingUrl:
+          type: string
+        source:
+          type: string
