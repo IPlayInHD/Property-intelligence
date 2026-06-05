@@ -2,10 +2,12 @@ import { useParams, useLocation } from "wouter";
 import { useEffect, useState, useCallback } from "react";
 import {
   useGetAnalysis, getGetAnalysisQueryKey,
+  useGetCommunities,
   useRunPriceFairness, useRunQolScore, useRunForecast,
   useRunLiquidity, useRunRentalYield, useRunTrends,
   useDeleteAnalysis,
 } from "@workspace/api-client-react";
+import CommunityMap from "@/components/ui/CommunityMap";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,6 +175,8 @@ export default function AnalysisDetails() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { data: communities } = useGetCommunities();
+
   const { data: analysis, isLoading } = useGetAnalysis(id!, {
     query: {
       enabled: !!id,
@@ -194,7 +198,6 @@ export default function AnalysisDetails() {
   };
 
   const handleDownload = () => {
-    const token = localStorage.getItem("propiq_token");
     const url = `/api/analysis/${id}/report`;
     const a = document.createElement("a");
     a.href = url;
@@ -238,6 +241,10 @@ export default function AnalysisDetails() {
 
   const pricePsf = pd.sizeSqft ? Math.round(pd.listedPrice / pd.sizeSqft) : null;
 
+  const communityGeo = communities?.find(
+    (c) => c.name.toLowerCase() === pd.community.toLowerCase()
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -270,34 +277,55 @@ export default function AnalysisDetails() {
       {/* Property Summary + Score */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2 bg-card/80 border-border/50">
-          <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Listed Price</p>
-              <p className="font-mono text-lg font-bold text-primary">{formatAed(pd.listedPrice)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Price/sqft</p>
-              <p className="font-mono text-lg font-bold">{pricePsf ? `AED ${pricePsf.toLocaleString()}` : "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Size</p>
-              <p className="font-mono text-lg font-bold">{pd.sizeSqft.toLocaleString()} sqft</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bedrooms</p>
-              <p className="font-mono text-lg font-bold">{pd.bedrooms === 0 ? "Studio" : `${pd.bedrooms} BR`}</p>
-            </div>
-            {pd.buildingName && (
-              <div className="col-span-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Building</p>
-                <p className="text-base font-medium">{pd.buildingName}</p>
-              </div>
-            )}
-            {pd.viewType && (
+          <CardContent className="p-6 space-y-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">View</p>
-                <p className="text-base font-medium">{pd.viewType}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Listed Price</p>
+                <p className="font-mono text-lg font-bold text-primary">{formatAed(pd.listedPrice)}</p>
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Price/sqft</p>
+                <p className="font-mono text-lg font-bold">{pricePsf ? `AED ${pricePsf.toLocaleString()}` : "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Size</p>
+                <p className="font-mono text-lg font-bold">{pd.sizeSqft.toLocaleString()} sqft</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Bedrooms</p>
+                <p className="font-mono text-lg font-bold">{pd.bedrooms === 0 ? "Studio" : `${pd.bedrooms} BR`}</p>
+              </div>
+              {pd.buildingName && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Building</p>
+                  <p className="text-base font-medium">{pd.buildingName}</p>
+                </div>
+              )}
+              {pd.viewType && (
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">View</p>
+                  <p className="text-base font-medium">{pd.viewType}</p>
+                </div>
+              )}
+            </div>
+            {/* Community Map */}
+            {communityGeo && (
+              <CommunityMap
+                latitude={communityGeo.latitude ?? 25.2}
+                longitude={communityGeo.longitude ?? 55.27}
+                community={pd.community}
+                emirate={pd.emirate}
+                className="h-48 w-full"
+              />
+            )}
+            {!communityGeo && (
+              <CommunityMap
+                latitude={pd.emirate === "Abu Dhabi" ? 24.4667 : 25.2048}
+                longitude={pd.emirate === "Abu Dhabi" ? 54.3667 : 55.2708}
+                community={pd.community}
+                emirate={pd.emirate}
+                className="h-48 w-full"
+              />
             )}
           </CardContent>
         </Card>
