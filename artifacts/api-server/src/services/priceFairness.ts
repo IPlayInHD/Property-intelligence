@@ -25,6 +25,7 @@ export interface PriceFairnessResult {
   comparables: ComparableTransaction[];
   dataQuality: string;
   warning: string | null;
+  dataFreshnessDate: string | null;
 }
 
 export interface ComparableTransaction {
@@ -202,6 +203,26 @@ export async function calculatePriceFairness(params: PropertyParams): Promise<Pr
   const adjustedBenchmarkPsf = benchmarkPsf * (1 + adjustment);
   const fairnessScore = ((listedPsf - adjustedBenchmarkPsf) / adjustedBenchmarkPsf) * 100;
 
+  // Determine the most recent comparable date
+  const sortedDates = comparables
+    .map((c) => c.transactionDate)
+    .filter(Boolean)
+    .sort()
+    .reverse();
+  const dataFreshnessDate = sortedDates.length > 0 ? sortedDates[0] : null;
+
+  // Cap dataQuality at "medium" and set staleness warning if most recent comparable is > 6 months old
+  let dataQuality = psfs.length >= 8 ? "high" : psfs.length >= 3 ? "medium" : "low";
+  if (dataFreshnessDate) {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const freshnessDate = new Date(dataFreshnessDate);
+    if (freshnessDate < sixMonthsAgo) {
+      if (dataQuality === "high") dataQuality = "medium";
+      warning = `Data may be stale — most recent comparable is from ${dataFreshnessDate}. Price estimate could be less accurate.`;
+    }
+  }
+
   return {
     fairnessScore: Math.round(fairnessScore * 10) / 10,
     verdict: getVerdict(fairnessScore),
@@ -209,7 +230,8 @@ export async function calculatePriceFairness(params: PropertyParams): Promise<Pr
     benchmarkPsf: Math.round(benchmarkPsf),
     adjustedBenchmarkPsf: Math.round(adjustedBenchmarkPsf),
     comparables: comparables.slice(0, 8),
-    dataQuality: psfs.length >= 8 ? "high" : psfs.length >= 3 ? "medium" : "low",
+    dataQuality,
     warning,
+    dataFreshnessDate,
   };
 }

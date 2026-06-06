@@ -417,20 +417,49 @@ export default function AnalysisDetails() {
 
 function ModulePriceFairness({ data }: { data: Record<string, unknown> }) {
   const comps = (data.comparables as Array<Record<string, unknown>>) ?? [];
+  const freshnessDate = data.dataFreshnessDate as string | null | undefined;
+  const dataQuality = data.dataQuality as string | undefined;
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const isStale = freshnessDate ? new Date(freshnessDate) < sixMonthsAgo : false;
+
   return (
-    <Card className="bg-card/80 border-border/50">
+    <Card className={`bg-card/80 border-border/50 ${isStale ? "border-amber-500/40" : ""}`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">MODULE 1</span>
             Price Fairness Index
           </CardTitle>
-          <Tooltip>
-            <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
-            <TooltipContent className="max-w-[250px]">
-              Compares the listed price per sqft against the median of recent DLD-registered transactions for comparable properties in the same community.
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            {freshnessDate && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className={`text-xs font-mono px-2 py-0.5 rounded flex items-center gap-1 cursor-help ${isStale ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-muted/50 text-muted-foreground"}`}>
+                    {isStale && <AlertCircle className="h-3 w-3" />}
+                    {isStale ? "Stale data" : "Updated"} · {freshnessDate}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[240px]">
+                  {isStale
+                    ? `Most recent comparable transaction is from ${freshnessDate}, which is more than 6 months ago. The price estimate may not reflect current market conditions.`
+                    : `Most recent comparable transaction: ${freshnessDate}`}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {dataQuality && (
+              <span className={`text-xs font-mono px-2 py-0.5 rounded ${dataQuality === "high" ? "bg-green-500/10 text-green-500" : dataQuality === "medium" ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"}`}>
+                {dataQuality} quality
+              </span>
+            )}
+            <Tooltip>
+              <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
+              <TooltipContent className="max-w-[250px]">
+                Compares the listed price per sqft against the median of recent DLD-registered transactions for comparable properties in the same community.
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-6 pt-2 space-y-6">
@@ -449,7 +478,13 @@ function ModulePriceFairness({ data }: { data: Record<string, unknown> }) {
             <p className="font-mono font-bold">AED {(data.adjustedBenchmarkPsf as number).toLocaleString()}</p>
           </div>
         </div>
-        {!!(data.warning as string) && (
+        {isStale && (
+          <div className="flex items-start gap-2 text-sm text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3" data-testid="staleness-warning">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>{data.warning as string}</span>
+          </div>
+        )}
+        {!isStale && !!(data.warning as string) && (
           <div className="flex items-start gap-2 text-sm text-warning bg-warning/10 border border-warning/20 rounded-lg p-3">
             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <span>{data.warning as string}</span>
