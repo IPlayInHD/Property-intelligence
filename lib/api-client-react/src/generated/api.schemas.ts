@@ -395,6 +395,28 @@ export interface CommunityStats {
   growth3yr?: number | null;
 }
 
+export interface SparklinePoint {
+  period: string;
+  avgPsf: number;
+}
+
+export interface CommunityMomentum {
+  community: string;
+  emirate: string;
+  currentPsf: number;
+  /** @nullable */
+  prevPsf?: number | null;
+  /** @nullable */
+  qoqChange?: number | null;
+  sparkline: SparklinePoint[];
+  transactionCount: number;
+}
+
+export interface MarketPulseOverview {
+  communities: CommunityMomentum[];
+  generatedAt: string;
+}
+
 export interface ScrapeInput {
   url: string;
 }

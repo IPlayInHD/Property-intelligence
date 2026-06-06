@@ -36,6 +36,7 @@ import type {
   LiquidityResult,
   LoginInput,
   MarketOverview,
+  MarketPulseOverview,
   MarketRent,
   PriceFairnessResult,
   PropertyInput,
@@ -1630,6 +1631,83 @@ export function useGetTopCommunities<TData = Awaited<ReturnType<typeof getTopCom
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetTopCommunitiesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMarketPulseUrl = () => {
+
+
+
+
+  return `/api/market/overview`
+}
+
+/**
+ * @summary Get communities ranked by quarter-over-quarter PSF momentum
+ */
+export const getMarketPulse = async ( options?: RequestInit): Promise<MarketPulseOverview> => {
+
+  return customFetch<MarketPulseOverview>(getGetMarketPulseUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketPulseQueryKey = () => {
+    return [
+    `/api/market/overview`
+    ] as const;
+    }
+
+
+export const getGetMarketPulseQueryOptions = <TData = Awaited<ReturnType<typeof getMarketPulse>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketPulse>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketPulseQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketPulse>>> = ({ signal }) => getMarketPulse({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketPulse>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketPulseQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketPulse>>>
+export type GetMarketPulseQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get communities ranked by quarter-over-quarter PSF momentum
+ */
+
+export function useGetMarketPulse<TData = Awaited<ReturnType<typeof getMarketPulse>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketPulse>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketPulseQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

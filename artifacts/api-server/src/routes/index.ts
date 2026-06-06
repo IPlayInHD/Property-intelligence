@@ -7,6 +7,7 @@ import dataRouter from "./data";
 import scrapeRouter from "./scrape";
 import userRouter from "./user";
 import ingestionRouter from "./ingestion";
+import marketRouter from "./market";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(dataRouter);
 router.use(scrapeRouter);
 router.use(userRouter);
 router.use(ingestionRouter);
+router.use(marketRouter);
 
 export default router;

@@ -643,6 +643,26 @@ export const GetTopCommunitiesResponse = zod.array(GetTopCommunitiesResponseItem
 
 
 /**
+ * @summary Get communities ranked by quarter-over-quarter PSF momentum
+ */
+export const GetMarketPulseResponse = zod.object({
+  "communities": zod.array(zod.object({
+  "community": zod.string(),
+  "emirate": zod.string(),
+  "currentPsf": zod.number(),
+  "prevPsf": zod.number().nullish(),
+  "qoqChange": zod.number().nullish(),
+  "sparkline": zod.array(zod.object({
+  "period": zod.string(),
+  "avgPsf": zod.number()
+})),
+  "transactionCount": zod.number()
+})),
+  "generatedAt": zod.string()
+})
+
+
+/**
  * @summary Scrape a Bayut/PF/Dubizzle URL and return property details
  */
 export const ScrapeListingUrlBody = zod.object({

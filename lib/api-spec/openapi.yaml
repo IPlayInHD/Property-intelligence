@@ -478,6 +478,20 @@ paths:
                 items:
                   $ref: "#/components/schemas/CommunityStats"
 
+  # MARKET
+  /market/overview:
+    get:
+      operationId: getMarketPulse
+      tags: [data]
+      summary: Get communities ranked by quarter-over-quarter PSF momentum
+      responses:
+        "200":
+          description: Market pulse overview with community momentum rankings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketPulseOverview"
+
   # SCRAPE
   /scrape/listing-url:
     post:
@@ -1146,6 +1160,56 @@ components:
         - community
         - emirate
         - transactionCount
+
+    SparklinePoint:
+      type: object
+      properties:
+        period:
+          type: string
+        avgPsf:
+          type: number
+      required:
+        - period
+        - avgPsf
+
+    CommunityMomentum:
+      type: object
+      properties:
+        community:
+          type: string
+        emirate:
+          type: string
+        currentPsf:
+          type: number
+        prevPsf:
+          type: ["number", "null"]
+        qoqChange:
+          type: ["number", "null"]
+        sparkline:
+          type: array
+          items:
+            $ref: "#/components/schemas/SparklinePoint"
+        transactionCount:
+          type: integer
+      required:
+        - community
+        - emirate
+        - currentPsf
+        - sparkline
+        - transactionCount
+
+    MarketPulseOverview:
+      type: object
+      properties:
+        communities:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityMomentum"
+        generatedAt:
+          type: string
+      required:
+        - communities
+        - generatedAt
 
     ScrapeInput:
       type: object
