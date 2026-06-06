@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/mobile/"
+title = "PropIQ Mobile"
+version = "1.0.0"
+id = "artifacts/propiq-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/mobile/" ]
+localPort = 22279
+
+[services.development]
+run = "pnpm --filter @workspace/propiq-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/propiq-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/propiq-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "22279"
+BASE_PATH = "/mobile/"
