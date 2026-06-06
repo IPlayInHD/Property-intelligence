@@ -6,6 +6,7 @@ import modulesRouter from "./modules";
 import dataRouter from "./data";
 import scrapeRouter from "./scrape";
 import userRouter from "./user";
+import ingestionRouter from "./ingestion";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(modulesRouter);
 router.use(dataRouter);
 router.use(scrapeRouter);
 router.use(userRouter);
+router.use(ingestionRouter);
 
 export default router;
