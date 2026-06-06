@@ -7,6 +7,7 @@
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
+    "seed": "node_modules/.bin/esbuild src/seed.ts --bundle --platform=node --format=esm --outfile=dist/seed.mjs --external:*.node --external:pdfkit --external:pg-native --banner:js=\"import { createRequire as __crReq } from 'node:module'; globalThis.require = __crReq(import.meta.url);\" && node dist/seed.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
