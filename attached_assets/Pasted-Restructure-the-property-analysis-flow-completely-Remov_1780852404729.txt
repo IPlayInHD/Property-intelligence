@@ -1,0 +1,105 @@
+Restructure the property analysis flow completely. Remove the manual property 
+entry form. Replace it with the following:
+
+LISTINGS BROWSE PAGE (/listings)
+
+Build a property listings page that looks and functions like a professional 
+real estate portal. This page displays properties scraped from Bayut, 
+Propertyfinder, and Dubizzle that are stored in our listings table in the 
+database.
+
+PAGE LAYOUT:
+
+Top bar — Search and filters:
+- Search bar: "Search by community, building, or area"
+- Filter dropdowns: Emirate, Property Type (Apartment/Villa/Studio/Townhouse/
+  Penthouse), Bedrooms (Studio/1/2/3/4/4+), Price Range (min/max AED sliders),
+  Size Range (sqft min/max), View Type, Furnished (yes/no/any)
+- Sort by: Newest Listed / Price Low-High / Price High-Low / Size / 
+  Best PropIQ Score (this is our differentiator — no other platform has this)
+- Active filter count badge: "5 filters active" with a clear all button
+
+Results header:
+- "X properties found" count
+- Toggle between Grid view and List view
+
+PROPERTY CARD (Grid view):
+Each card shows:
+- Property photo placeholder (use a gradient placeholder with the community 
+  name if no photo is available — style it like a premium dark card)
+- Source badge top-right: small pill showing "Bayut" / "Propertyfinder" / 
+  "Dubizzle" in their respective brand colours
+- Listed price: large, formatted as "AED 2,450,000"
+- Property title: "2BR Apartment | Palm Jumeirah"
+- Key specs row with icons: bed icon + bed count, bath icon + bath count, 
+  sqft icon + size
+- Community and emirate
+- Price per sqft: "AED 3,200 / sqft"
+- Days listed badge: "Listed 12 days ago" (calculated from first_seen in DB)
+- IF the property has already been analysed by PropIQ, show a small 
+  "PropIQ Score: 74" badge in teal — this is a key differentiator showing 
+  that our platform adds intelligence on top of the listing
+- Bottom of card: two buttons:
+  1. "View Listing" — opens the original listing URL in a new tab
+  2. "Run PropIQ Analysis" — PRIMARY action, teal button, triggers the full 
+     analysis pipeline for this exact property
+
+PROPERTY CARD (List view):
+Horizontal card layout with the same data but arranged in a single row.
+More compact. Better for comparing multiple properties quickly.
+
+PROPERTY DETAIL PAGE (/listings/:id):
+When a user clicks anywhere on a card (not the buttons), take them to a 
+detail page showing:
+- All property details in a clean layout
+- Photo gallery placeholder
+- Full specs table
+- Location on a Mapbox map (plot the community coordinates)
+- Similar properties in the same community (query listings table)
+- Large "Run PropIQ Analysis" CTA button — prominent, gold accent, with 
+  text: "Get the full financial picture on this property"
+- If analysis already exists for this listing: show "View Analysis Report" 
+  button instead, linking to the existing analysis
+
+ANALYSIS TRIGGER FLOW:
+When user clicks "Run PropIQ Analysis" on any listing:
+1. Check user authentication — if not logged in, redirect to login with 
+   return URL stored so they come back to this listing after signing in
+2. Check tier limits — if starter user has used 5 analyses, show upgrade 
+   modal explaining what they get on Analyst plan
+3. If authorised: show a full-screen analysis loading overlay on the listing 
+   page. Show animated progress steps:
+   - "Pulling transaction data from DLD..." (2s)
+   - "Calculating price fairness against 847 comparable sales..." (3s)  
+   - "Scoring quality of life across 6 dimensions..." (3s)
+   - "Running Bear, Base and Bull market scenarios..." (4s)
+   - "Calculating true rental yield..." (2s)
+   - "Analysis complete." (done)
+4. Redirect to /analysis/:id with the full results
+
+The property data object passed to the analysis engine comes directly from 
+the listings table row — no user input required. The analysis modules use:
+  listing.community, listing.emirate, listing.property_type, 
+  listing.bedrooms, listing.size_sqft, listing.listed_price, 
+  listing.floor_number, listing.view_type, listing.furnished,
+  listing.building_name
+
+DATA POPULATION:
+Seed the listings table immediately with at least 50 realistic sample 
+property listings across Dubai communities (Dubai Marina, Downtown, JVC, 
+Business Bay, Palm Jumeirah, JBR, Arabian Ranches, Mirdif) so the browse 
+page has content from day one. Generate realistic prices, sizes, and specs 
+that reflect actual UAE market rates. 
+
+The scraping pipeline runs nightly to replace seed data with real listings 
+over time. But the app must look fully populated from the first run.
+
+NAVIGATION UPDATE:
+Update the sidebar navigation:
+- Remove "New Analysis" (manual form)
+- Add "Browse Properties" as the primary nav item (second after Dashboard)
+- Add "My Reports" (renamed from "My Analyses") 
+- The dashboard quick-start should now say "Find a property to analyse" 
+  with a search bar that goes to the listings page
+
+Remove the /analysis/new route and the manual entry form entirely.
