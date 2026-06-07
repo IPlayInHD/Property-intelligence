@@ -28,29 +28,43 @@ export interface PropertyInput {
 
 function computeOverallScore(results: Record<string, unknown>): number {
   let total = 0;
-  let count = 0;
+  let totalWeight = 0;
 
   if (results.priceFairness) {
-    const pf = results.priceFairness as { fairnessScore: number };
+    const pf = results.priceFairness as { fairnessScore: number; dataFreshnessDate?: string | null };
     const pfScore = Math.max(0, Math.min(100, 50 + (-pf.fairnessScore) * 2));
-    total += pfScore;
-    count++;
+
+    // When the most recent comparable transaction is older than 6 months the
+    // price-fairness signal is unreliable.  Reduce its contribution to the
+    // overall PropIQ Score to 50 % of its normal weight so that a stale
+    // "Fairly Priced" verdict cannot artificially inflate the final score.
+    let pfWeight = 1;
+    if (pf.dataFreshnessDate) {
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      if (new Date(pf.dataFreshnessDate) < sixMonthsAgo) {
+        pfWeight = 0.5;
+      }
+    }
+
+    total += pfScore * pfWeight;
+    totalWeight += pfWeight;
   }
 
   if (results.qolScore) {
     const qol = results.qolScore as { totalScore: number };
     total += qol.totalScore;
-    count++;
+    totalWeight += 1;
   }
 
   if (results.rentalYield) {
     const ry = results.rentalYield as { netYield: number };
     const ryScore = Math.min(100, ry.netYield * 10);
     total += ryScore;
-    count++;
+    totalWeight += 1;
   }
 
-  return count > 0 ? Math.round(total / count) : 50;
+  return totalWeight > 0 ? Math.round(total / totalWeight) : 50;
 }
 
 export async function runAnalysis(analysisId: string, property: PropertyInput, userPlan: string): Promise<void> {

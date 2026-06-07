@@ -241,6 +241,12 @@ export default function AnalysisDetails() {
 
   const pricePsf = pd.sizeSqft ? Math.round(pd.listedPrice / pd.sizeSqft) : null;
 
+  const priceFairness = results.priceFairness as Record<string, unknown> | undefined;
+  const freshnessDate = priceFairness?.dataFreshnessDate as string | null | undefined;
+  const isFairnessStale = freshnessDate
+    ? new Date(freshnessDate) < new Date(new Date().setMonth(new Date().getMonth() - 6))
+    : false;
+
   const communityGeo = communities?.find(
     (c) => c.name.toLowerCase() === pd.community.toLowerCase()
   );
@@ -353,6 +359,18 @@ export default function AnalysisDetails() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Stale-data footnote: shown when price fairness comparables are > 6 months old.
+          Explains why the PropIQ Score may be lower than the individual module scores
+          would suggest — the price-fairness component carries half its normal weight. */}
+      {!isPending && isFairnessStale && (
+        <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 border border-border/40 rounded-lg px-4 py-3" data-testid="stale-score-footnote">
+          <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-500" />
+          <span>
+            <strong className="text-amber-500">Score note:</strong> The Price Fairness module is using comparables older than 6 months ({freshnessDate}). To avoid an outdated price verdict inflating the result, its contribution to the PropIQ Score has been reduced to half its normal weight. The individual module score above still reflects the raw fairness reading.
+          </span>
+        </div>
+      )}
 
       {isPending && (
         <Card className="bg-card/80 border-primary/30">

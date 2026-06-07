@@ -194,6 +194,20 @@ export default function AnalysisDetailScreen() {
             </View>
           )}
 
+          {/* Stale-data footnote: shown when price fairness comparables are > 6 months old.
+              Explains why the PropIQ Score may differ from individual module readings —
+              the price-fairness component carries half its normal weight when data is stale. */}
+          {results?.priceFairness?.dataFreshnessDate &&
+            isPriceFainessStale(results.priceFairness.dataFreshnessDate) && (
+            <View style={[s.staleFootnote, { backgroundColor: colors.card, borderColor: "#92400e33" }]}>
+              <Ionicons name="information-circle-outline" size={14} color="#d97706" style={{ marginTop: 1 }} />
+              <Text style={[s.staleFootnoteText, { color: colors.mutedForeground }]}>
+                <Text style={{ color: "#d97706", fontFamily: "DMSans_600SemiBold" }}>Score note: </Text>
+                Price Fairness comparables are older than 6 months ({formatFreshnessDate(results.priceFairness.dataFreshnessDate)}). Its contribution to the PropIQ Score has been halved to avoid an outdated verdict inflating the result.
+              </Text>
+            </View>
+          )}
+
           {/* Module Cards */}
           <Text style={s.modulesTitle}>Intelligence Modules</Text>
 
@@ -405,5 +419,21 @@ function makeStyles(colors: ReturnType<typeof useColors>, topPad: number) {
     errorText: { fontSize: 16, fontWeight: "600" as const, textAlign: "center" as const },
     retryBtn: { borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12, marginTop: 8 },
     retryBtnText: { color: "#FFFFFF", fontWeight: "600" as const, fontSize: 15 },
+    staleFootnote: {
+      flexDirection: "row" as const,
+      alignItems: "flex-start" as const,
+      gap: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 16,
+    },
+    staleFootnoteText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 18,
+      fontFamily: "DMSans_400Regular",
+    },
   });
 }
