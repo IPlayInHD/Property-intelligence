@@ -492,6 +492,101 @@ paths:
               schema:
                 $ref: "#/components/schemas/MarketPulseOverview"
 
+  # LISTINGS
+  /listings:
+    get:
+      operationId: getListings
+      tags: [data]
+      summary: Browse property listings with filters and pagination
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: emirate
+          in: query
+          schema:
+            type: string
+        - name: propertyType
+          in: query
+          schema:
+            type: string
+        - name: bedrooms
+          in: query
+          schema:
+            type: integer
+        - name: priceMin
+          in: query
+          schema:
+            type: number
+        - name: priceMax
+          in: query
+          schema:
+            type: number
+        - name: sizeMin
+          in: query
+          schema:
+            type: number
+        - name: sizeMax
+          in: query
+          schema:
+            type: number
+        - name: viewType
+          in: query
+          schema:
+            type: string
+        - name: furnished
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, price-asc, price-desc, size, score]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 24
+      responses:
+        "200":
+          description: Paginated listings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListingsPage"
+
+  /listings/{id}:
+    get:
+      operationId: getListing
+      tags: [data]
+      summary: Get a single listing with similar properties
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Listing detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListingDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # SCRAPE
   /scrape/listing-url:
     post:
@@ -731,9 +826,86 @@ components:
         - plan
 
     # PROPERTY INPUT
+    Listing:
+      type: object
+      properties:
+        id:
+          type: integer
+        source:
+          type: ["string", "null"]
+        listingUrl:
+          type: ["string", "null"]
+        community:
+          type: ["string", "null"]
+        emirate:
+          type: ["string", "null"]
+        buildingName:
+          type: ["string", "null"]
+        propertyType:
+          type: ["string", "null"]
+        bedrooms:
+          type: ["integer", "null"]
+        sizeSqft:
+          type: ["number", "null"]
+        listedPrice:
+          type: ["number", "null"]
+        pricePerSqft:
+          type: ["number", "null"]
+        viewType:
+          type: ["string", "null"]
+        furnished:
+          type: ["boolean", "null"]
+        firstSeen:
+          type: ["string", "null"]
+        lastSeen:
+          type: ["string", "null"]
+        daysListed:
+          type: ["integer", "null"]
+        isActive:
+          type: ["boolean", "null"]
+        existingAnalysisId:
+          type: ["string", "null"]
+        existingScore:
+          type: ["number", "null"]
+      required:
+        - id
+
+    ListingDetail:
+      allOf:
+        - $ref: "#/components/schemas/Listing"
+        - type: object
+          properties:
+            similar:
+              type: array
+              items:
+                $ref: "#/components/schemas/Listing"
+          required:
+            - similar
+
+    ListingsPage:
+      type: object
+      properties:
+        listings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Listing"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - listings
+        - total
+        - page
+        - limit
+
     PropertyInput:
       type: object
       properties:
+        listingId:
+          type: ["integer", "null"]
         propertyType:
           type: string
           enum: [apartment, villa, townhouse, penthouse, studio]

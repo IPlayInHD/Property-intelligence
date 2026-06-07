@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useLocation } from "wouter";
 import {
-  Plus,
   Search,
   TrendingUp,
   TrendingDown,
@@ -41,9 +40,7 @@ export default function Dashboard() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const query = formData.get("query") as string;
-    if (query) {
-      setLocation("/analysis/new");
-    }
+    setLocation(`/listings${query ? `?q=${encodeURIComponent(query)}` : ""}`);
   };
 
   const formatCurrency = (value: number) => {
@@ -71,10 +68,10 @@ export default function Dashboard() {
             Here is your property intelligence overview.
           </p>
         </div>
-        <Link href="/analysis/new">
+        <Link href="/listings">
           <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Analysis
+            <Building2 className="h-4 w-4" />
+            Browse Properties
           </Button>
         </Link>
       </div>
@@ -112,7 +109,7 @@ export default function Dashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">Quick Start</CardTitle>
             <CardDescription>
-              Paste a property portal URL or enter manually
+              Search by community, building, or area
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -121,7 +118,7 @@ export default function Dashboard() {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   name="query"
-                  placeholder="e.g. https://www.propertyfinder.ae/..."
+                  placeholder="e.g. Dubai Marina, Downtown, Palm Jumeirah..."
                   className="pl-9 bg-background/50 h-10"
                 />
               </div>
@@ -362,8 +359,8 @@ export default function Dashboard() {
                 Start by analysing a property to see institutional-grade metrics
                 and forecasts.
               </p>
-              <Link href="/analysis/new">
-                <Button>Create your first analysis</Button>
+              <Link href="/listings">
+                <Button>Browse Properties</Button>
               </Link>
             </CardContent>
           </Card>

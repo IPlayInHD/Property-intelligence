@@ -10,7 +10,8 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Dashboard from "@/pages/dashboard";
-import AnalysisNew from "@/pages/analysis-new";
+import Listings from "@/pages/listings";
+import ListingDetail from "@/pages/listing-detail";
 import AnalysisDetails from "@/pages/analysis-details";
 import Account from "@/pages/account";
 import NotFound from "@/pages/not-found";
@@ -37,8 +38,11 @@ function Router() {
       <Route path="/dashboard">
         {() => <ProtectedRouteWithLayout component={Dashboard} />}
       </Route>
-      <Route path="/analysis/new">
-        {() => <ProtectedRouteWithLayout component={AnalysisNew} />}
+      <Route path="/listings">
+        {() => <ProtectedRouteWithLayout component={Listings} />}
+      </Route>
+      <Route path="/listings/:id">
+        {() => <ProtectedRouteWithLayout component={ListingDetail} />}
       </Route>
       <Route path="/analysis/history">
         {() => <ProtectedRouteWithLayout component={Dashboard} />}

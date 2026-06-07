@@ -12,6 +12,8 @@ import type { PropertyInputPropertyType } from './propertyInputPropertyType';
 import type { PropertyInputViewType } from './propertyInputViewType';
 
 export interface PropertyInput {
+  /** @nullable */
+  listingId?: number | null;
   propertyType: PropertyInputPropertyType;
   emirate: PropertyInputEmirate;
   community: string;

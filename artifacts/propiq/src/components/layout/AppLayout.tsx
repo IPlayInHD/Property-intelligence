@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { LayoutDashboard, Plus, History, UserCircle, Crown, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Building2, History, UserCircle, Crown, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLogout } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -22,8 +22,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "New Analysis", href: "/analysis/new", icon: Plus },
-    { name: "My Analyses", href: "/analysis/history", icon: History }, // We will map /analysis/history to dashboard for now, or create a separate list
+    { name: "Browse Properties", href: "/listings", icon: Building2 },
+    { name: "My Reports", href: "/analysis/history", icon: History },
     { name: "Account", href: "/account", icon: UserCircle },
   ];
 

@@ -87,6 +87,7 @@ export const createAnalysisBodyBedroomsMin = 0;
 
 
 export const CreateAnalysisBody = zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -136,6 +137,7 @@ export const GetAnalysisResponse = zod.object({
   "id": zod.string(),
   "userId": zod.string(),
   "propertyData": zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -292,6 +294,7 @@ export const runPriceFairnessBodyBedroomsMin = 0;
 
 
 export const RunPriceFairnessBody = zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -341,6 +344,7 @@ export const runQolScoreBodyBedroomsMin = 0;
 
 
 export const RunQolScoreBody = zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -380,6 +384,7 @@ export const runForecastBodyBedroomsMin = 0;
 
 
 export const RunForecastBody = zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -439,6 +444,7 @@ export const runLiquidityBodyBedroomsMin = 0;
 
 
 export const RunLiquidityBody = zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -474,6 +480,7 @@ export const runRentalYieldBodyBedroomsMin = 0;
 
 
 export const RunRentalYieldBody = zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -512,6 +519,7 @@ export const runTrendsBodyBedroomsMin = 0;
 
 
 export const RunTrendsBody = zod.object({
+  "listingId": zod.number().nullish(),
   "propertyType": zod.enum(['apartment', 'villa', 'townhouse', 'penthouse', 'studio']),
   "emirate": zod.enum(['Dubai', 'Abu Dhabi', 'Sharjah', 'RAK', 'Ajman']),
   "community": zod.string(),
@@ -660,6 +668,108 @@ export const GetMarketPulseResponse = zod.object({
 })),
   "generatedAt": zod.string()
 })
+
+
+/**
+ * @summary Browse property listings with filters and pagination
+ */
+export const getListingsQueryPageDefault = 1;
+export const getListingsQueryLimitDefault = 24;
+
+export const GetListingsQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "emirate": zod.coerce.string().optional(),
+  "propertyType": zod.coerce.string().optional(),
+  "bedrooms": zod.coerce.number().optional(),
+  "priceMin": zod.coerce.number().optional(),
+  "priceMax": zod.coerce.number().optional(),
+  "sizeMin": zod.coerce.number().optional(),
+  "sizeMax": zod.coerce.number().optional(),
+  "viewType": zod.coerce.string().optional(),
+  "furnished": zod.coerce.string().optional(),
+  "sort": zod.enum(['newest', 'price-asc', 'price-desc', 'size', 'score']).optional(),
+  "page": zod.coerce.number().default(getListingsQueryPageDefault),
+  "limit": zod.coerce.number().default(getListingsQueryLimitDefault)
+})
+
+export const GetListingsResponse = zod.object({
+  "listings": zod.array(zod.object({
+  "id": zod.number(),
+  "source": zod.string().nullish(),
+  "listingUrl": zod.string().nullish(),
+  "community": zod.string().nullish(),
+  "emirate": zod.string().nullish(),
+  "buildingName": zod.string().nullish(),
+  "propertyType": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "sizeSqft": zod.number().nullish(),
+  "listedPrice": zod.number().nullish(),
+  "pricePerSqft": zod.number().nullish(),
+  "viewType": zod.string().nullish(),
+  "furnished": zod.boolean().nullish(),
+  "firstSeen": zod.string().nullish(),
+  "lastSeen": zod.string().nullish(),
+  "daysListed": zod.number().nullish(),
+  "isActive": zod.boolean().nullish(),
+  "existingAnalysisId": zod.string().nullish(),
+  "existingScore": zod.number().nullish()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Get a single listing with similar properties
+ */
+export const GetListingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetListingResponse = zod.object({
+  "id": zod.number(),
+  "source": zod.string().nullish(),
+  "listingUrl": zod.string().nullish(),
+  "community": zod.string().nullish(),
+  "emirate": zod.string().nullish(),
+  "buildingName": zod.string().nullish(),
+  "propertyType": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "sizeSqft": zod.number().nullish(),
+  "listedPrice": zod.number().nullish(),
+  "pricePerSqft": zod.number().nullish(),
+  "viewType": zod.string().nullish(),
+  "furnished": zod.boolean().nullish(),
+  "firstSeen": zod.string().nullish(),
+  "lastSeen": zod.string().nullish(),
+  "daysListed": zod.number().nullish(),
+  "isActive": zod.boolean().nullish(),
+  "existingAnalysisId": zod.string().nullish(),
+  "existingScore": zod.number().nullish()
+}).and(zod.object({
+  "similar": zod.array(zod.object({
+  "id": zod.number(),
+  "source": zod.string().nullish(),
+  "listingUrl": zod.string().nullish(),
+  "community": zod.string().nullish(),
+  "emirate": zod.string().nullish(),
+  "buildingName": zod.string().nullish(),
+  "propertyType": zod.string().nullish(),
+  "bedrooms": zod.number().nullish(),
+  "sizeSqft": zod.number().nullish(),
+  "listedPrice": zod.number().nullish(),
+  "pricePerSqft": zod.number().nullish(),
+  "viewType": zod.string().nullish(),
+  "furnished": zod.boolean().nullish(),
+  "firstSeen": zod.string().nullish(),
+  "lastSeen": zod.string().nullish(),
+  "daysListed": zod.number().nullish(),
+  "isActive": zod.boolean().nullish(),
+  "existingAnalysisId": zod.string().nullish(),
+  "existingScore": zod.number().nullish()
+}))
+}))
 
 
 /**

@@ -119,6 +119,57 @@ export interface UpgradeInput {
   paymentMethodId?: string | null;
 }
 
+export interface Listing {
+  id: number;
+  /** @nullable */
+  source?: string | null;
+  /** @nullable */
+  listingUrl?: string | null;
+  /** @nullable */
+  community?: string | null;
+  /** @nullable */
+  emirate?: string | null;
+  /** @nullable */
+  buildingName?: string | null;
+  /** @nullable */
+  propertyType?: string | null;
+  /** @nullable */
+  bedrooms?: number | null;
+  /** @nullable */
+  sizeSqft?: number | null;
+  /** @nullable */
+  listedPrice?: number | null;
+  /** @nullable */
+  pricePerSqft?: number | null;
+  /** @nullable */
+  viewType?: string | null;
+  /** @nullable */
+  furnished?: boolean | null;
+  /** @nullable */
+  firstSeen?: string | null;
+  /** @nullable */
+  lastSeen?: string | null;
+  /** @nullable */
+  daysListed?: number | null;
+  /** @nullable */
+  isActive?: boolean | null;
+  /** @nullable */
+  existingAnalysisId?: string | null;
+  /** @nullable */
+  existingScore?: number | null;
+}
+
+export type ListingDetail = Listing & {
+  similar: Listing[];
+};
+
+export interface ListingsPage {
+  listings: Listing[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export type PropertyInputPropertyType = typeof PropertyInputPropertyType[keyof typeof PropertyInputPropertyType];
 
 
@@ -171,6 +222,8 @@ export const PropertyInputFurnished = {
 } as const;
 
 export interface PropertyInput {
+  /** @nullable */
+  listingId?: number | null;
   propertyType: PropertyInputPropertyType;
   emirate: PropertyInputEmirate;
   community: string;
@@ -462,4 +515,31 @@ limit?: number;
 export type GetTopCommunitiesParams = {
 limit?: number;
 };
+
+export type GetListingsParams = {
+q?: string;
+emirate?: string;
+propertyType?: string;
+bedrooms?: number;
+priceMin?: number;
+priceMax?: number;
+sizeMin?: number;
+sizeMax?: number;
+viewType?: string;
+furnished?: string;
+sort?: GetListingsSort;
+page?: number;
+limit?: number;
+};
+
+export type GetListingsSort = typeof GetListingsSort[keyof typeof GetListingsSort];
+
+
+export const GetListingsSort = {
+  newest: 'newest',
+  'price-asc': 'price-asc',
+  'price-desc': 'price-desc',
+  size: 'size',
+  score: 'score',
+} as const;
 

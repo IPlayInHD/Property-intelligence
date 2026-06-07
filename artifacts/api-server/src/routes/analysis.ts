@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { analysesTable, usersTable } from "@workspace/db";
+import { analysesTable, usersTable, listingsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middleware/auth";
 import { checkAnalysisLimit } from "../middleware/tierAccess";
@@ -9,11 +9,39 @@ import PDFDocument from "pdfkit";
 
 const router = Router();
 
-// POST /analysis — create new analysis
+// POST /analysis — create new analysis (accepts full PropertyInput OR { listingId })
 router.post("/analysis", requireAuth, checkAnalysisLimit, async (req: AuthRequest, res) => {
   try {
-    const property = req.body as PropertyInput;
+    let property = req.body as PropertyInput & { listingId?: number };
     const userId = req.user!.id;
+
+    // If listingId provided, fetch the listing and build PropertyInput from it
+    if (property.listingId && !property.community) {
+      const listingRows = await db
+        .select()
+        .from(listingsTable)
+        .where(eq(listingsTable.id, property.listingId))
+        .limit(1);
+
+      if (!listingRows.length) {
+        res.status(404).json({ error: "Listing not found" });
+        return;
+      }
+      const l = listingRows[0];
+      property = {
+        listingId: l.id,
+        propertyType: (l.propertyType ?? "apartment") as PropertyInput["propertyType"],
+        emirate: (l.emirate ?? "Dubai") as PropertyInput["emirate"],
+        community: l.community ?? "Downtown Dubai",
+        buildingName: l.buildingName ?? undefined,
+        sizeSqft: l.sizeSqft ? parseFloat(String(l.sizeSqft)) : 1000,
+        bedrooms: l.bedrooms ?? 1,
+        listedPrice: l.listedPrice ? parseFloat(String(l.listedPrice)) : 0,
+        listingType: "sale",
+        viewType: (l.viewType ?? undefined) as PropertyInput["viewType"],
+        furnished: l.furnished ? "Yes" : "No",
+      };
+    }
 
     if (!property.community || !property.emirate || !property.propertyType || !property.sizeSqft || property.listedPrice === undefined) {
       res.status(400).json({ error: "Missing required property fields" });

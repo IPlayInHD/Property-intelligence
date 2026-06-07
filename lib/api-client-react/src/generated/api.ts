@@ -29,11 +29,14 @@ import type {
   ErrorResponse,
   ForecastResult,
   GetCommunitiesParams,
+  GetListingsParams,
   GetMarketRentsParams,
   GetTopCommunitiesParams,
   GetTransactionsParams,
   HealthStatus,
   LiquidityResult,
+  ListingDetail,
+  ListingsPage,
   LoginInput,
   MarketOverview,
   MarketPulseOverview,
@@ -1708,6 +1711,167 @@ export function useGetMarketPulse<TData = Awaited<ReturnType<typeof getMarketPul
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMarketPulseQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetListingsUrl = (params?: GetListingsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/listings?${stringifiedParams}` : `/api/listings`
+}
+
+/**
+ * @summary Browse property listings with filters and pagination
+ */
+export const getListings = async (params?: GetListingsParams, options?: RequestInit): Promise<ListingsPage> => {
+
+  return customFetch<ListingsPage>(getGetListingsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetListingsQueryKey = (params?: GetListingsParams,) => {
+    return [
+    `/api/listings`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetListingsQueryOptions = <TData = Awaited<ReturnType<typeof getListings>>, TError = ErrorType<unknown>>(params?: GetListingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetListingsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getListings>>> = ({ signal }) => getListings(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getListings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetListingsQueryResult = NonNullable<Awaited<ReturnType<typeof getListings>>>
+export type GetListingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Browse property listings with filters and pagination
+ */
+
+export function useGetListings<TData = Awaited<ReturnType<typeof getListings>>, TError = ErrorType<unknown>>(
+ params?: GetListingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetListingsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetListingUrl = (id: number,) => {
+
+
+
+
+  return `/api/listings/${id}`
+}
+
+/**
+ * @summary Get a single listing with similar properties
+ */
+export const getListing = async (id: number, options?: RequestInit): Promise<ListingDetail> => {
+
+  return customFetch<ListingDetail>(getGetListingUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetListingQueryKey = (id: number,) => {
+    return [
+    `/api/listings/${id}`
+    ] as const;
+    }
+
+
+export const getGetListingQueryOptions = <TData = Awaited<ReturnType<typeof getListing>>, TError = ErrorType<ErrorResponse>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListing>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetListingQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getListing>>> = ({ signal }) => getListing(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getListing>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetListingQueryResult = NonNullable<Awaited<ReturnType<typeof getListing>>>
+export type GetListingQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get a single listing with similar properties
+ */
+
+export function useGetListing<TData = Awaited<ReturnType<typeof getListing>>, TError = ErrorType<ErrorResponse>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getListing>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetListingQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

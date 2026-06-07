@@ -1,5 +1,5 @@
 import { db } from "@workspace/db";
-import { communitiesTable, macroDataTable, serviceChargesTable, usersTable, dldTransactionsTable } from "@workspace/db";
+import { communitiesTable, macroDataTable, serviceChargesTable, usersTable, dldTransactionsTable, listingsTable } from "@workspace/db";
 import bcrypt from "bcryptjs";
 
 const COMMUNITIES = [
@@ -422,6 +422,149 @@ function generateBulkDldTransactions() {
   return transactions;
 }
 
+// ─── Listings seed data ─────────────────────────────────────────────────────
+interface ListingSeedRow {
+  source: string;
+  community: string;
+  emirate: string;
+  buildingName: string;
+  propertyType: string;
+  bedrooms: number;
+  sizeSqft: number;
+  listedPrice: number;
+  viewType: string | null;
+  furnished: boolean;
+  daysAgo: number;
+}
+
+const SOURCES = ["bayut", "propertyfinder", "dubizzle"];
+
+const LISTINGS_RAW: ListingSeedRow[] = [
+  // ── Dubai Marina ──
+  { source: "bayut",           community: "Dubai Marina",    emirate: "Dubai", buildingName: "Marina Gate 1",              propertyType: "apartment", bedrooms: 1, sizeSqft: 762,  listedPrice: 1250000,  viewType: "Marina",    furnished: true,  daysAgo: 5 },
+  { source: "propertyfinder",  community: "Dubai Marina",    emirate: "Dubai", buildingName: "Marina Gate 2",              propertyType: "apartment", bedrooms: 2, sizeSqft: 1150, listedPrice: 1850000,  viewType: "Marina",    furnished: false, daysAgo: 12 },
+  { source: "dubizzle",        community: "Dubai Marina",    emirate: "Dubai", buildingName: "Cayan Tower",                propertyType: "apartment", bedrooms: 2, sizeSqft: 1280, listedPrice: 2100000,  viewType: "Sea",       furnished: true,  daysAgo: 3 },
+  { source: "bayut",           community: "Dubai Marina",    emirate: "Dubai", buildingName: "23 Marina",                  propertyType: "apartment", bedrooms: 3, sizeSqft: 1750, listedPrice: 3200000,  viewType: "Marina",    furnished: true,  daysAgo: 8 },
+  { source: "propertyfinder",  community: "Dubai Marina",    emirate: "Dubai", buildingName: "Princess Tower",             propertyType: "penthouse",  bedrooms: 4, sizeSqft: 3800, listedPrice: 9500000,  viewType: "Sea",       furnished: true,  daysAgo: 21 },
+  { source: "dubizzle",        community: "Dubai Marina",    emirate: "Dubai", buildingName: "Marina Promenade",           propertyType: "apartment", bedrooms: 1, sizeSqft: 690,  listedPrice: 1100000,  viewType: "Community", furnished: false, daysAgo: 6 },
+  { source: "bayut",           community: "Dubai Marina",    emirate: "Dubai", buildingName: "Elite Residence",            propertyType: "apartment", bedrooms: 3, sizeSqft: 1900, listedPrice: 3450000,  viewType: "Sea",       furnished: false, daysAgo: 14 },
+  { source: "propertyfinder",  community: "Dubai Marina",    emirate: "Dubai", buildingName: "Jumeirah Living Marina Gate", propertyType: "apartment", bedrooms: 2, sizeSqft: 1320, listedPrice: 2400000,  viewType: "Marina",    furnished: true,  daysAgo: 2 },
+
+  // ── Downtown Dubai ──
+  { source: "bayut",           community: "Downtown Dubai",  emirate: "Dubai", buildingName: "Burj Vista 1",               propertyType: "apartment", bedrooms: 1, sizeSqft: 900,  listedPrice: 1950000,  viewType: "City",      furnished: false, daysAgo: 9 },
+  { source: "propertyfinder",  community: "Downtown Dubai",  emirate: "Dubai", buildingName: "Burj Vista 2",               propertyType: "apartment", bedrooms: 2, sizeSqft: 1300, listedPrice: 2800000,  viewType: "City",      furnished: true,  daysAgo: 4 },
+  { source: "dubizzle",        community: "Downtown Dubai",  emirate: "Dubai", buildingName: "Act One",                    propertyType: "apartment", bedrooms: 2, sizeSqft: 1420, listedPrice: 3100000,  viewType: "City",      furnished: false, daysAgo: 17 },
+  { source: "bayut",           community: "Downtown Dubai",  emirate: "Dubai", buildingName: "Boulevard Point",            propertyType: "apartment", bedrooms: 3, sizeSqft: 1900, listedPrice: 4500000,  viewType: "City",      furnished: true,  daysAgo: 7 },
+  { source: "propertyfinder",  community: "Downtown Dubai",  emirate: "Dubai", buildingName: "The Address Downtown",       propertyType: "penthouse",  bedrooms: 3, sizeSqft: 3200, listedPrice: 12500000, viewType: "City",      furnished: true,  daysAgo: 30 },
+  { source: "dubizzle",        community: "Downtown Dubai",  emirate: "Dubai", buildingName: "Forte 1",                    propertyType: "apartment", bedrooms: 1, sizeSqft: 820,  listedPrice: 1800000,  viewType: "City",      furnished: false, daysAgo: 11 },
+  { source: "bayut",           community: "Downtown Dubai",  emirate: "Dubai", buildingName: "Downtown Views 2",           propertyType: "apartment", bedrooms: 2, sizeSqft: 1210, listedPrice: 2650000,  viewType: "City",      furnished: true,  daysAgo: 1 },
+  { source: "propertyfinder",  community: "Downtown Dubai",  emirate: "Dubai", buildingName: "IL Primo",                   propertyType: "penthouse",  bedrooms: 4, sizeSqft: 5200, listedPrice: 22000000, viewType: "City",      furnished: true,  daysAgo: 45 },
+
+  // ── JVC ──
+  { source: "dubizzle",        community: "JVC",             emirate: "Dubai", buildingName: "Bloom Heights",              propertyType: "studio",    bedrooms: 0, sizeSqft: 420,  listedPrice: 490000,   viewType: "Community", furnished: true,  daysAgo: 3 },
+  { source: "bayut",           community: "JVC",             emirate: "Dubai", buildingName: "Park Lane",                  propertyType: "apartment", bedrooms: 1, sizeSqft: 720,  listedPrice: 780000,   viewType: "Community", furnished: false, daysAgo: 10 },
+  { source: "propertyfinder",  community: "JVC",             emirate: "Dubai", buildingName: "Belgravia 1",                propertyType: "apartment", bedrooms: 1, sizeSqft: 780,  listedPrice: 820000,   viewType: "Garden",    furnished: true,  daysAgo: 6 },
+  { source: "dubizzle",        community: "JVC",             emirate: "Dubai", buildingName: "Belgravia 2",                propertyType: "apartment", bedrooms: 2, sizeSqft: 1050, listedPrice: 1050000,  viewType: "Community", furnished: false, daysAgo: 15 },
+  { source: "bayut",           community: "JVC",             emirate: "Dubai", buildingName: "Binghatti Stars",            propertyType: "studio",    bedrooms: 0, sizeSqft: 380,  listedPrice: 430000,   viewType: "Community", furnished: true,  daysAgo: 4 },
+  { source: "propertyfinder",  community: "JVC",             emirate: "Dubai", buildingName: "District 10 Townhouses",     propertyType: "townhouse", bedrooms: 2, sizeSqft: 1400, listedPrice: 1300000,  viewType: "Community", furnished: false, daysAgo: 22 },
+  { source: "dubizzle",        community: "JVC",             emirate: "Dubai", buildingName: "Catch Residences",           propertyType: "apartment", bedrooms: 1, sizeSqft: 660,  listedPrice: 720000,   viewType: "Community", furnished: true,  daysAgo: 8 },
+  { source: "bayut",           community: "JVC",             emirate: "Dubai", buildingName: "Concept 7 Residences",       propertyType: "apartment", bedrooms: 2, sizeSqft: 1100, listedPrice: 1120000,  viewType: "Community", furnished: false, daysAgo: 19 },
+
+  // ── Business Bay ──
+  { source: "propertyfinder",  community: "Business Bay",   emirate: "Dubai", buildingName: "Executive Bay A",            propertyType: "studio",    bedrooms: 0, sizeSqft: 510,  listedPrice: 680000,   viewType: "City",      furnished: true,  daysAgo: 2 },
+  { source: "dubizzle",        community: "Business Bay",   emirate: "Dubai", buildingName: "Executive Bay B",            propertyType: "apartment", bedrooms: 1, sizeSqft: 820,  listedPrice: 1150000,  viewType: "City",      furnished: false, daysAgo: 9 },
+  { source: "bayut",           community: "Business Bay",   emirate: "Dubai", buildingName: "Damac Maison Majestine",     propertyType: "apartment", bedrooms: 2, sizeSqft: 1200, listedPrice: 1750000,  viewType: "City",      furnished: true,  daysAgo: 13 },
+  { source: "propertyfinder",  community: "Business Bay",   emirate: "Dubai", buildingName: "Aykon City Tower C",         propertyType: "apartment", bedrooms: 1, sizeSqft: 750,  listedPrice: 1050000,  viewType: "Marina",    furnished: true,  daysAgo: 5 },
+  { source: "dubizzle",        community: "Business Bay",   emirate: "Dubai", buildingName: "Vera Residences",            propertyType: "apartment", bedrooms: 2, sizeSqft: 1280, listedPrice: 1900000,  viewType: "City",      furnished: false, daysAgo: 16 },
+  { source: "bayut",           community: "Business Bay",   emirate: "Dubai", buildingName: "Millennium Binghatti",       propertyType: "apartment", bedrooms: 3, sizeSqft: 1650, listedPrice: 2600000,  viewType: "City",      furnished: true,  daysAgo: 7 },
+  { source: "propertyfinder",  community: "Business Bay",   emirate: "Dubai", buildingName: "The Opus",                   propertyType: "penthouse",  bedrooms: 3, sizeSqft: 3400, listedPrice: 8900000,  viewType: "City",      furnished: true,  daysAgo: 28 },
+
+  // ── Palm Jumeirah ──
+  { source: "bayut",           community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "Shoreline Apartments Block 1", propertyType: "apartment", bedrooms: 2, sizeSqft: 1650, listedPrice: 4200000,  viewType: "Sea",       furnished: true,  daysAgo: 6 },
+  { source: "dubizzle",        community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "Al Hamri",                   propertyType: "apartment", bedrooms: 3, sizeSqft: 2100, listedPrice: 6500000,  viewType: "Sea",       furnished: true,  daysAgo: 11 },
+  { source: "propertyfinder",  community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "The 8",                      propertyType: "apartment", bedrooms: 2, sizeSqft: 1800, listedPrice: 5400000,  viewType: "Sea",       furnished: false, daysAgo: 18 },
+  { source: "bayut",           community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "Frond A",                    propertyType: "villa",     bedrooms: 4, sizeSqft: 4200, listedPrice: 14000000, viewType: "Sea",       furnished: false, daysAgo: 34 },
+  { source: "dubizzle",        community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "Frond D",                    propertyType: "villa",     bedrooms: 5, sizeSqft: 5800, listedPrice: 22000000, viewType: "Sea",       furnished: true,  daysAgo: 60 },
+  { source: "propertyfinder",  community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "Garden Homes",               propertyType: "villa",     bedrooms: 3, sizeSqft: 3100, listedPrice: 9800000,  viewType: "Sea",       furnished: false, daysAgo: 25 },
+  { source: "bayut",           community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "Shoreline Apartments Block 4", propertyType: "apartment", bedrooms: 1, sizeSqft: 1100, listedPrice: 2900000,  viewType: "Sea",       furnished: true,  daysAgo: 4 },
+  { source: "dubizzle",        community: "Palm Jumeirah",  emirate: "Dubai", buildingName: "Fairmont Residences",        propertyType: "apartment", bedrooms: 3, sizeSqft: 2400, listedPrice: 7800000,  viewType: "Sea",       furnished: true,  daysAgo: 40 },
+
+  // ── JBR ──
+  { source: "propertyfinder",  community: "JBR",            emirate: "Dubai", buildingName: "Bahar 1",                    propertyType: "apartment", bedrooms: 1, sizeSqft: 850,  listedPrice: 1450000,  viewType: "Sea",       furnished: true,  daysAgo: 3 },
+  { source: "bayut",           community: "JBR",            emirate: "Dubai", buildingName: "Bahar 3",                    propertyType: "apartment", bedrooms: 2, sizeSqft: 1200, listedPrice: 2200000,  viewType: "Sea",       furnished: false, daysAgo: 7 },
+  { source: "dubizzle",        community: "JBR",            emirate: "Dubai", buildingName: "Sadaf 5",                    propertyType: "apartment", bedrooms: 2, sizeSqft: 1350, listedPrice: 2450000,  viewType: "Sea",       furnished: true,  daysAgo: 14 },
+  { source: "propertyfinder",  community: "JBR",            emirate: "Dubai", buildingName: "Rimal 4",                    propertyType: "apartment", bedrooms: 3, sizeSqft: 1800, listedPrice: 3600000,  viewType: "Sea",       furnished: true,  daysAgo: 20 },
+  { source: "bayut",           community: "JBR",            emirate: "Dubai", buildingName: "Murjan 3",                   propertyType: "apartment", bedrooms: 1, sizeSqft: 780,  listedPrice: 1350000,  viewType: "Sea",       furnished: false, daysAgo: 10 },
+  { source: "dubizzle",        community: "JBR",            emirate: "Dubai", buildingName: "Jumeirah Bay X1",            propertyType: "apartment", bedrooms: 3, sizeSqft: 1950, listedPrice: 4200000,  viewType: "Sea",       furnished: true,  daysAgo: 5 },
+  { source: "propertyfinder",  community: "JBR",            emirate: "Dubai", buildingName: "Bahar 6",                    propertyType: "apartment", bedrooms: 2, sizeSqft: 1300, listedPrice: 2350000,  viewType: "Sea",       furnished: false, daysAgo: 9 },
+
+  // ── Arabian Ranches ──
+  { source: "bayut",           community: "Arabian Ranches", emirate: "Dubai", buildingName: "Maple 1",                   propertyType: "villa",     bedrooms: 3, sizeSqft: 2800, listedPrice: 3200000,  viewType: "Community", furnished: false, daysAgo: 22 },
+  { source: "dubizzle",        community: "Arabian Ranches", emirate: "Dubai", buildingName: "Maple 2",                   propertyType: "villa",     bedrooms: 4, sizeSqft: 3500, listedPrice: 4200000,  viewType: "Garden",    furnished: false, daysAgo: 31 },
+  { source: "propertyfinder",  community: "Arabian Ranches", emirate: "Dubai", buildingName: "Alvorada 1",                propertyType: "villa",     bedrooms: 3, sizeSqft: 2900, listedPrice: 3450000,  viewType: "Garden",    furnished: false, daysAgo: 18 },
+  { source: "bayut",           community: "Arabian Ranches", emirate: "Dubai", buildingName: "Savannah",                  propertyType: "villa",     bedrooms: 4, sizeSqft: 3200, listedPrice: 3900000,  viewType: "Community", furnished: true,  daysAgo: 12 },
+  { source: "dubizzle",        community: "Arabian Ranches", emirate: "Dubai", buildingName: "Saheel 1",                  propertyType: "villa",     bedrooms: 5, sizeSqft: 4600, listedPrice: 5800000,  viewType: "Garden",    furnished: false, daysAgo: 45 },
+  { source: "propertyfinder",  community: "Arabian Ranches", emirate: "Dubai", buildingName: "Palmera 2",                 propertyType: "townhouse", bedrooms: 3, sizeSqft: 2100, listedPrice: 2600000,  viewType: "Community", furnished: false, daysAgo: 8 },
+  { source: "bayut",           community: "Arabian Ranches", emirate: "Dubai", buildingName: "Camelia 2",                 propertyType: "townhouse", bedrooms: 4, sizeSqft: 2600, listedPrice: 3100000,  viewType: "Garden",    furnished: false, daysAgo: 16 },
+
+  // ── Mirdif ──
+  { source: "dubizzle",        community: "Mirdif",          emirate: "Dubai", buildingName: "Mushrif Village",           propertyType: "villa",     bedrooms: 3, sizeSqft: 2400, listedPrice: 1900000,  viewType: "Community", furnished: false, daysAgo: 14 },
+  { source: "propertyfinder",  community: "Mirdif",          emirate: "Dubai", buildingName: "Uptown Mirdif",             propertyType: "apartment", bedrooms: 2, sizeSqft: 1100, listedPrice: 1050000,  viewType: "Community", furnished: true,  daysAgo: 6 },
+  { source: "bayut",           community: "Mirdif",          emirate: "Dubai", buildingName: "Shorooq",                   propertyType: "villa",     bedrooms: 4, sizeSqft: 3000, listedPrice: 2500000,  viewType: "Garden",    furnished: false, daysAgo: 25 },
+  { source: "dubizzle",        community: "Mirdif",          emirate: "Dubai", buildingName: "Ghoroob",                   propertyType: "apartment", bedrooms: 1, sizeSqft: 780,  listedPrice: 780000,   viewType: "Community", furnished: true,  daysAgo: 4 },
+  { source: "propertyfinder",  community: "Mirdif",          emirate: "Dubai", buildingName: "Islamabad Lane",            propertyType: "villa",     bedrooms: 3, sizeSqft: 2600, listedPrice: 2100000,  viewType: "Garden",    furnished: false, daysAgo: 19 },
+  { source: "bayut",           community: "Mirdif",          emirate: "Dubai", buildingName: "Mirdif Tulip",              propertyType: "apartment", bedrooms: 2, sizeSqft: 950,  listedPrice: 950000,   viewType: "Community", furnished: false, daysAgo: 11 },
+  { source: "dubizzle",        community: "Mirdif",          emirate: "Dubai", buildingName: "Nasayem Avenue",            propertyType: "townhouse", bedrooms: 3, sizeSqft: 1700, listedPrice: 1550000,  viewType: "Community", furnished: false, daysAgo: 33 },
+
+  // ── Dubai Hills ──
+  { source: "bayut",           community: "Dubai Hills",     emirate: "Dubai", buildingName: "Park Heights 1",            propertyType: "apartment", bedrooms: 1, sizeSqft: 820,  listedPrice: 1400000,  viewType: "Community", furnished: false, daysAgo: 5 },
+  { source: "propertyfinder",  community: "Dubai Hills",     emirate: "Dubai", buildingName: "Mulberry 1",                propertyType: "apartment", bedrooms: 2, sizeSqft: 1150, listedPrice: 1950000,  viewType: "Garden",    furnished: true,  daysAgo: 10 },
+  { source: "dubizzle",        community: "Dubai Hills",     emirate: "Dubai", buildingName: "Golf Place 1",              propertyType: "villa",     bedrooms: 4, sizeSqft: 3800, listedPrice: 6200000,  viewType: "Garden",    furnished: false, daysAgo: 22 },
+  { source: "bayut",           community: "Dubai Hills",     emirate: "Dubai", buildingName: "Sidra 1",                   propertyType: "villa",     bedrooms: 3, sizeSqft: 2900, listedPrice: 4800000,  viewType: "Community", furnished: false, daysAgo: 15 },
+  { source: "propertyfinder",  community: "Dubai Hills",     emirate: "Dubai", buildingName: "Maple 1",                   propertyType: "townhouse", bedrooms: 3, sizeSqft: 1800, listedPrice: 2900000,  viewType: "Community", furnished: false, daysAgo: 8 },
+  { source: "dubizzle",        community: "Dubai Hills",     emirate: "Dubai", buildingName: "Acacia",                    propertyType: "apartment", bedrooms: 2, sizeSqft: 1200, listedPrice: 1750000,  viewType: "Garden",    furnished: true,  daysAgo: 3 },
+];
+
+function buildListingUrl(source: string, community: string, id: number): string {
+  const slug = community.toLowerCase().replace(/\s+/g, "-");
+  if (source === "bayut") return `https://www.bayut.com/to-buy/apartments-in-${slug}/${id}/`;
+  if (source === "propertyfinder") return `https://www.propertyfinder.ae/en/buy/apartments-in-${slug}-${id}.html`;
+  return `https://dubai.dubizzle.com/en/residences/apartments-for-sale/${slug}-${id}/`;
+}
+
+async function seedListings() {
+  const today = new Date("2026-06-06");
+
+  const rows = LISTINGS_RAW.map((l, i) => {
+    const firstSeen = new Date(today);
+    firstSeen.setDate(firstSeen.getDate() - l.daysAgo);
+    const psf = Math.round(l.listedPrice / l.sizeSqft);
+    return {
+      source: SOURCES[i % SOURCES.length],
+      listingUrl: buildListingUrl(l.source, l.community, i + 1001),
+      community: l.community,
+      emirate: l.emirate,
+      buildingName: l.buildingName,
+      propertyType: l.propertyType,
+      bedrooms: l.bedrooms,
+      sizeSqft: l.sizeSqft.toFixed(2),
+      listedPrice: l.listedPrice.toFixed(2),
+      pricePerSqft: psf.toFixed(2),
+      viewType: l.viewType,
+      furnished: l.furnished,
+      firstSeen: firstSeen.toISOString().split("T")[0],
+      lastSeen: today.toISOString().split("T")[0],
+      daysListed: l.daysAgo,
+      isActive: true,
+    };
+  });
+
+  for (const row of rows) {
+    await db.insert(listingsTable).values(row).onConflictDoNothing();
+  }
+  console.log(`Seeded ${rows.length} listings`);
+}
+
 async function seed() {
   console.log("Starting seed...");
 
@@ -475,6 +618,14 @@ async function seed() {
   }).onConflictDoNothing();
 
   console.log("Demo user: demo@propiq.ae / PropIQ2025! (Pro plan)");
+  // Listings — seed if empty
+  const existingListings = await db.select().from(listingsTable).limit(1);
+  if (!existingListings.length) {
+    await seedListings();
+  } else {
+    console.log("Listings already seeded — skipping");
+  }
+
   console.log("Seed complete!");
 }
 
