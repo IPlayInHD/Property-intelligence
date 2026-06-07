@@ -17,6 +17,19 @@ import { ScoreRing } from "@/components/ScoreRing";
 import { useColors } from "@/hooks/useColors";
 import { useGetAnalysis } from "@workspace/api-client-react";
 
+type ComparableTransaction = {
+  id: number;
+  community: string;
+  buildingName?: string | null;
+  propertyType: string;
+  bedrooms?: number | null;
+  sizeSqft?: number | null;
+  salePrice: number;
+  pricePerSqft?: number | null;
+  transactionDate: string;
+  emirate: string;
+};
+
 type PriceFairness = {
   fairnessScore?: number;
   verdict?: string;
@@ -24,6 +37,7 @@ type PriceFairness = {
   benchmarkPsf?: number;
   dataFreshnessDate?: string | null;
   dataQuality?: string | null;
+  comparables?: ComparableTransaction[];
 };
 
 type QolScore = {
@@ -86,6 +100,8 @@ export default function AnalysisDetailScreen() {
 
   const { data, isLoading, error, refetch } = useGetAnalysis(id ?? "");
   const analysis = data as Analysis | undefined;
+
+  const [showComparables, setShowComparables] = useState(false);
 
   // Poll for pending analyses
   const [polling, setPolling] = useState(false);
@@ -212,27 +228,92 @@ export default function AnalysisDetailScreen() {
           <Text style={s.modulesTitle}>Intelligence Modules</Text>
 
           {results?.priceFairness && (
-            <ModuleCard
-              title="Price Fairness"
-              icon="trending-up-outline"
-              score={results.priceFairness.fairnessScore}
-              verdict={results.priceFairness.verdict}
-              detail={
-                results.priceFairness.listedPsf != null && results.priceFairness.benchmarkPsf != null
-                  ? `Listed: AED ${results.priceFairness.listedPsf.toFixed(0)}/sqft · Benchmark: AED ${results.priceFairness.benchmarkPsf.toFixed(0)}/sqft`
-                  : undefined
-              }
-              lastUpdated={
-                results.priceFairness.dataFreshnessDate && !isPriceFainessStale(results.priceFairness.dataFreshnessDate)
-                  ? formatFreshnessDate(results.priceFairness.dataFreshnessDate)
-                  : undefined
-              }
-              warning={
-                results.priceFairness.dataFreshnessDate && isPriceFainessStale(results.priceFairness.dataFreshnessDate)
-                  ? `Data may be stale — most recent comparable is from ${formatFreshnessDate(results.priceFairness.dataFreshnessDate)}. Price estimate could be less accurate.`
-                  : undefined
-              }
-            />
+            <View>
+              <ModuleCard
+                title="Price Fairness"
+                icon="trending-up-outline"
+                score={results.priceFairness.fairnessScore}
+                verdict={results.priceFairness.verdict}
+                detail={
+                  results.priceFairness.listedPsf != null && results.priceFairness.benchmarkPsf != null
+                    ? `Listed: AED ${results.priceFairness.listedPsf.toFixed(0)}/sqft · Benchmark: AED ${results.priceFairness.benchmarkPsf.toFixed(0)}/sqft`
+                    : undefined
+                }
+                lastUpdated={
+                  results.priceFairness.dataFreshnessDate && !isPriceFainessStale(results.priceFairness.dataFreshnessDate)
+                    ? formatFreshnessDate(results.priceFairness.dataFreshnessDate)
+                    : undefined
+                }
+                warning={
+                  results.priceFairness.dataFreshnessDate && isPriceFainessStale(results.priceFairness.dataFreshnessDate)
+                    ? `Data may be stale — most recent comparable is from ${formatFreshnessDate(results.priceFairness.dataFreshnessDate)}. Price estimate could be less accurate.`
+                    : undefined
+                }
+              />
+              {(results.priceFairness.comparables?.length ?? 0) > 0 && (
+                <View style={{ marginTop: -6, marginBottom: 12 }}>
+                  <Pressable
+                    onPress={() => setShowComparables((v) => !v)}
+                    style={[s.comparablesToggle, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  >
+                    <Ionicons name="receipt-outline" size={14} color={colors.primary} />
+                    <Text style={[s.comparablesToggleText, { color: colors.primary }]}>
+                      {showComparables
+                        ? "Hide comparables"
+                        : `View ${results.priceFairness.comparables!.length} comparable sale${results.priceFairness.comparables!.length !== 1 ? "s" : ""}`}
+                    </Text>
+                    <Ionicons
+                      name={showComparables ? "chevron-up" : "chevron-down"}
+                      size={14}
+                      color={colors.primary}
+                      style={{ marginLeft: "auto" }}
+                    />
+                  </Pressable>
+                  {showComparables && (
+                    <View style={[s.comparablesPanel, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      {results.priceFairness.comparables!.map((comp, idx) => {
+                        const stale = isComparableStale(comp.transactionDate);
+                        return (
+                          <View
+                            key={comp.id ?? idx}
+                            style={[
+                              s.comparableRow,
+                              idx < results.priceFairness!.comparables!.length - 1 && {
+                                borderBottomWidth: 1,
+                                borderBottomColor: colors.border,
+                              },
+                            ]}
+                          >
+                            <View style={s.comparableMain}>
+                              <View style={s.comparableTopRow}>
+                                <Text style={[s.comparableCommunity, { color: colors.foreground }]} numberOfLines={1}>
+                                  {comp.community}
+                                </Text>
+                                {stale && (
+                                  <View style={s.staleBadge}>
+                                    <Ionicons name="time-outline" size={10} color="#d97706" />
+                                    <Text style={s.staleBadgeText}>Stale</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={[s.comparableMeta, { color: colors.mutedForeground }]}>
+                                {formatComparableDate(comp.transactionDate)}
+                                {comp.sizeSqft != null ? ` · ${Math.round(comp.sizeSqft).toLocaleString()} sqft` : ""}
+                              </Text>
+                            </View>
+                            <Text style={[s.comparablePsf, { color: comp.pricePerSqft != null ? colors.foreground : colors.mutedForeground, fontFamily: "JetBrainsMono_400Regular" }]}>
+                              {comp.pricePerSqft != null
+                                ? `AED ${Math.round(comp.pricePerSqft).toLocaleString()}/sqft`
+                                : "—"}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
           )}
 
           {results?.qolScore && (
@@ -314,9 +395,20 @@ function isPriceFainessStale(dataFreshnessDate: string): boolean {
   return new Date(dataFreshnessDate) < sixMonthsAgo;
 }
 
+function isComparableStale(transactionDate: string): boolean {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  return new Date(transactionDate) < sixMonthsAgo;
+}
+
 function formatFreshnessDate(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+function formatComparableDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function getScoreColor(score: number, colors: ReturnType<typeof useColors>) {
@@ -434,6 +526,74 @@ function makeStyles(colors: ReturnType<typeof useColors>, topPad: number) {
       fontSize: 12,
       lineHeight: 18,
       fontFamily: "DMSans_400Regular",
+    },
+    comparablesToggle: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      marginBottom: 2,
+    },
+    comparablesToggleText: {
+      fontSize: 13,
+      fontFamily: "DMSans_600SemiBold",
+      fontWeight: "600" as const,
+    },
+    comparablesPanel: {
+      borderRadius: 10,
+      borderWidth: 1,
+      overflow: "hidden" as const,
+      marginTop: 4,
+      marginBottom: 2,
+    },
+    comparableRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      gap: 10,
+    },
+    comparableMain: {
+      flex: 1,
+      gap: 2,
+    },
+    comparableTopRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+    },
+    comparableCommunity: {
+      fontSize: 13,
+      fontFamily: "DMSans_600SemiBold",
+      fontWeight: "600" as const,
+      flex: 1,
+    },
+    comparableMeta: {
+      fontSize: 11,
+      lineHeight: 15,
+    },
+    comparablePsf: {
+      fontSize: 12,
+      fontWeight: "600" as const,
+      textAlign: "right" as const,
+    },
+    staleBadge: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 3,
+      backgroundColor: "#92400e22",
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
+    staleBadgeText: {
+      fontSize: 10,
+      color: "#d97706",
+      fontFamily: "DMSans_600SemiBold",
+      fontWeight: "600" as const,
     },
   });
 }
