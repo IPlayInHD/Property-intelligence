@@ -22,6 +22,8 @@ type PriceFairness = {
   verdict?: string;
   listedPsf?: number;
   benchmarkPsf?: number;
+  dataFreshnessDate?: string | null;
+  dataQuality?: string | null;
 };
 
 type QolScore = {
@@ -206,6 +208,16 @@ export default function AnalysisDetailScreen() {
                   ? `Listed: AED ${results.priceFairness.listedPsf.toFixed(0)}/sqft · Benchmark: AED ${results.priceFairness.benchmarkPsf.toFixed(0)}/sqft`
                   : undefined
               }
+              lastUpdated={
+                results.priceFairness.dataFreshnessDate && !isPriceFainessStale(results.priceFairness.dataFreshnessDate)
+                  ? formatFreshnessDate(results.priceFairness.dataFreshnessDate)
+                  : undefined
+              }
+              warning={
+                results.priceFairness.dataFreshnessDate && isPriceFainessStale(results.priceFairness.dataFreshnessDate)
+                  ? `Data may be stale — most recent comparable is from ${formatFreshnessDate(results.priceFairness.dataFreshnessDate)}. Price estimate could be less accurate.`
+                  : undefined
+              }
             />
           )}
 
@@ -280,6 +292,17 @@ export default function AnalysisDetailScreen() {
       )}
     </ScrollView>
   );
+}
+
+function isPriceFainessStale(dataFreshnessDate: string): boolean {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  return new Date(dataFreshnessDate) < sixMonthsAgo;
+}
+
+function formatFreshnessDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 }
 
 function getScoreColor(score: number, colors: ReturnType<typeof useColors>) {

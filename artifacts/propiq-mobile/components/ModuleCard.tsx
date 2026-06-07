@@ -10,6 +10,8 @@ interface ModuleCardProps {
   verdict?: string | null;
   detail?: string | null;
   locked?: boolean;
+  lastUpdated?: string | null;
+  warning?: string | null;
 }
 
 function getScoreColor(score: number, primary: string, accent: string, destructive: string) {
@@ -18,7 +20,7 @@ function getScoreColor(score: number, primary: string, accent: string, destructi
   return destructive;
 }
 
-export function ModuleCard({ title, icon, score, verdict, detail, locked }: ModuleCardProps) {
+export function ModuleCard({ title, icon, score, verdict, detail, locked, lastUpdated, warning }: ModuleCardProps) {
   const colors = useColors();
   const scoreColor =
     score != null
@@ -31,7 +33,14 @@ export function ModuleCard({ title, icon, score, verdict, detail, locked }: Modu
         <View style={[styles.iconWrap, { backgroundColor: colors.secondary }]}>
           <Ionicons name={icon} size={18} color={colors.primary} />
         </View>
-        <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+        <View style={styles.titleBlock}>
+          <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+          {!locked && lastUpdated && (
+            <Text style={[styles.lastUpdated, { color: colors.mutedForeground }]}>
+              Updated {lastUpdated}
+            </Text>
+          )}
+        </View>
         {locked && (
           <View style={[styles.badge, { backgroundColor: colors.secondary }]}>
             <Ionicons name="lock-closed" size={12} color={colors.accent} />
@@ -51,6 +60,12 @@ export function ModuleCard({ title, icon, score, verdict, detail, locked }: Modu
         <Text style={[styles.detail, { color: colors.mutedForeground }]} numberOfLines={2}>
           {detail}
         </Text>
+      )}
+      {!locked && warning && (
+        <View style={[styles.warningBanner, { backgroundColor: colors.accent + "1A", borderColor: colors.accent + "4D" }]}>
+          <Ionicons name="warning-outline" size={14} color={colors.accent} />
+          <Text style={[styles.warningText, { color: colors.accent }]}>{warning}</Text>
+        </View>
       )}
       {locked && (
         <Text style={[styles.detail, { color: colors.mutedForeground }]}>
@@ -81,10 +96,16 @@ const styles = StyleSheet.create({
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
-  title: {
+  titleBlock: {
     flex: 1,
+  },
+  title: {
     fontSize: 14,
     fontWeight: "600" as const,
+  },
+  lastUpdated: {
+    fontSize: 11,
+    marginTop: 1,
   },
   badge: {
     flexDirection: "row" as const,
@@ -110,5 +131,20 @@ const styles = StyleSheet.create({
   detail: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  warningBanner: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    gap: 6,
+    marginTop: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
   },
 });
