@@ -10,6 +10,54 @@ import { calculateTrends } from "./trends";
 import { getTierLimits } from "../middleware/tierAccess";
 import type { PriceFairnessResult } from "./priceFairness";
 
+export type ConfidenceLevel = "high" | "medium" | "low";
+
+/**
+ * Derives a confidence level for the PropIQ Score from the effective weights
+ * that were (or would be) applied when computing the score.
+ *
+ * - high   : all three scoring modules present and price-fairness data is fresh
+ * - medium : one module missing OR price-fairness weight reduced due to stale data
+ * - low    : two or more scoring modules absent / errored
+ *
+ * This is intentionally a pure function of `results` so it can be called both
+ * inside `runAnalysis` and on-the-fly in the API route without a schema change.
+ */
+export function computeConfidence(results: Record<string, unknown>): ConfidenceLevel {
+  let effectiveWeight = 0;
+
+  if (results.priceFairness) {
+    const pf = results.priceFairness as { fairnessScore?: number; dataFreshnessDate?: string | null };
+    if (typeof pf.fairnessScore === "number") {
+      let pfWeight = 1;
+      if (pf.dataFreshnessDate) {
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        if (new Date(pf.dataFreshnessDate) < sixMonthsAgo) {
+          pfWeight = 0.5;
+        }
+      }
+      effectiveWeight += pfWeight;
+    }
+  }
+
+  if (results.qolScore) {
+    const qol = results.qolScore as { totalScore?: number };
+    if (typeof qol.totalScore === "number") effectiveWeight += 1;
+  }
+
+  if (results.rentalYield) {
+    const ry = results.rentalYield as { netYield?: number };
+    if (typeof ry.netYield === "number") effectiveWeight += 1;
+  }
+
+  // Max possible weight is 3 (priceFairness=1, qolScore=1, rentalYield=1).
+  // Stale price-fairness drops it to 2.5.
+  if (effectiveWeight >= 3) return "high";
+  if (effectiveWeight >= 1.5) return "medium";
+  return "low";
+}
+
 export interface PropertyInput {
   propertyType: string;
   emirate: string;

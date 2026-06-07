@@ -75,10 +75,13 @@ type AnalysisResults = {
   trends?: Trends;
 };
 
+type ConfidenceLevel = "high" | "medium" | "low";
+
 type Analysis = {
   id: string;
   status: string;
   overallScore?: number | null;
+  confidence?: ConfidenceLevel | null;
   propertyData: {
     community: string;
     emirate: string;
@@ -206,6 +209,9 @@ export default function AnalysisDetailScreen() {
                 <Text style={[s.scoreSub, { color: colors.mutedForeground }]}>
                   Based on {Object.keys(results ?? {}).length} modules
                 </Text>
+                {analysis.confidence && (
+                  <ConfidenceBadge confidence={analysis.confidence} />
+                )}
               </View>
             </View>
           )}
@@ -388,6 +394,36 @@ export default function AnalysisDetailScreen() {
     </ScrollView>
   );
 }
+
+function ConfidenceBadge({ confidence }: { confidence: ConfidenceLevel }) {
+  const cfg = {
+    high: { label: "High Confidence", color: "#22C55E", bg: "#22C55E18" },
+    medium: { label: "Medium Confidence", color: "#d97706", bg: "#d9770618" },
+    low: { label: "Low Confidence", color: "#EF4444", bg: "#EF444418" },
+  }[confidence];
+
+  return (
+    <View style={[confidenceBadgeStyle.pill, { backgroundColor: cfg.bg }]}>
+      <View style={[confidenceBadgeStyle.dot, { backgroundColor: cfg.color }]} />
+      <Text style={[confidenceBadgeStyle.label, { color: cfg.color }]}>{cfg.label}</Text>
+    </View>
+  );
+}
+
+const confidenceBadgeStyle = StyleSheet.create({
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 6,
+    alignSelf: "flex-start",
+  },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  label: { fontSize: 11, fontFamily: "DMSans_600SemiBold", fontWeight: "600" },
+});
 
 function isPriceFainessStale(dataFreshnessDate: string): boolean {
   const sixMonthsAgo = new Date();

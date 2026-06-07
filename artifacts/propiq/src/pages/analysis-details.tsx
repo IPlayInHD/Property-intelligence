@@ -133,6 +133,51 @@ function SubScoreBar({ label, value, max = 20, tooltip }: { label: string; value
   );
 }
 
+function ConfidencePill({ confidence }: { confidence: "high" | "medium" | "low" }) {
+  const config = {
+    high: {
+      label: "High Confidence",
+      color: "#22C55E",
+      bg: "#22C55E18",
+      border: "#22C55E40",
+      tooltip: "All scoring modules are present and price-fairness data is fresh. The PropIQ Score fully reflects current market conditions.",
+    },
+    medium: {
+      label: "Medium Confidence",
+      color: "#F59E0B",
+      bg: "#F59E0B18",
+      border: "#F59E0B40",
+      tooltip: "One or more modules have limited or stale data. The score is reliable but may shift as fresher data arrives.",
+    },
+    low: {
+      label: "Low Confidence",
+      color: "#EF4444",
+      bg: "#EF444418",
+      border: "#EF444440",
+      tooltip: "Significant data gaps reduce scoring coverage. Treat this score as indicative only and conduct additional due diligence.",
+    },
+  }[confidence];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          data-testid="confidence-pill"
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full cursor-help"
+          style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}` }}
+        >
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ background: config.color }}
+          />
+          {config.label}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[220px] text-center">{config.tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function LockedModule({ name, requiredPlan }: { name: string; requiredPlan: string }) {
   return (
     <div className="relative overflow-hidden rounded-xl border border-border/30 p-6 bg-card/40">
@@ -247,6 +292,8 @@ export default function AnalysisDetails() {
     ? new Date(freshnessDate) < new Date(new Date().setMonth(new Date().getMonth() - 6))
     : false;
 
+  const confidence = (analysis as unknown as { confidence?: "high" | "medium" | "low" | null }).confidence;
+
   const communityGeo = communities?.find(
     (c) => c.name.toLowerCase() === pd.community.toLowerCase()
   );
@@ -354,6 +401,9 @@ export default function AnalysisDetails() {
                 >
                   {(analysis.overallScore ?? 0) >= 70 ? "Strong Buy Signal" : (analysis.overallScore ?? 0) >= 50 ? "Neutral" : "Caution"}
                 </Badge>
+                {confidence && (
+                  <ConfidencePill confidence={confidence} />
+                )}
               </>
             )}
           </CardContent>

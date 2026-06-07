@@ -4,7 +4,7 @@ import { analysesTable, usersTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middleware/auth";
 import { checkAnalysisLimit } from "../middleware/tierAccess";
-import { runAnalysis, type PropertyInput } from "../services/analysisEngine";
+import { runAnalysis, computeConfidence, type PropertyInput } from "../services/analysisEngine";
 import PDFDocument from "pdfkit";
 
 const router = Router();
@@ -45,6 +45,7 @@ router.post("/analysis", requireAuth, checkAnalysisLimit, async (req: AuthReques
       results: analysis.results,
       status: analysis.status,
       overallScore: analysis.overallScore ? parseFloat(String(analysis.overallScore)) : null,
+      confidence: null,
       createdAt: analysis.createdAt,
     });
   } catch (err) {
@@ -101,6 +102,7 @@ router.get("/analysis/:id", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const r = rows[0];
+    const storedResults = (r.results ?? {}) as Record<string, unknown>;
     res.json({
       id: r.id,
       userId: r.userId,
@@ -108,6 +110,7 @@ router.get("/analysis/:id", requireAuth, async (req: AuthRequest, res) => {
       results: r.results,
       status: r.status,
       overallScore: r.overallScore ? parseFloat(String(r.overallScore)) : null,
+      confidence: r.status === "complete" ? computeConfidence(storedResults) : null,
       createdAt: r.createdAt,
     });
   } catch (err) {
@@ -179,7 +182,16 @@ router.get("/analysis/:id/report", requireAuth, async (req: AuthRequest, res) =>
     doc.text(`Listed Price: AED ${pd.listedPrice.toLocaleString()}`);
     doc.text(`Price per sqft: AED ${Math.round(pd.listedPrice / pd.sizeSqft).toLocaleString()}`);
     if (analysis.overallScore) {
+      const confidence = computeConfidence(results);
+      const confidenceLabel = confidence === "high" ? "High" : confidence === "medium" ? "Medium" : "Low";
+      const confidenceNote =
+        confidence === "high"
+          ? "All modules present with fresh data."
+          : confidence === "medium"
+          ? "One or more modules have limited or stale data — score may shift as fresh data arrives."
+          : "Significant data gaps — treat score as indicative only.";
       doc.text(`PropIQ Intelligence Score: ${analysis.overallScore}/100`);
+      doc.text(`Score Confidence: ${confidenceLabel} — ${confidenceNote}`);
     }
     doc.moveDown();
 
