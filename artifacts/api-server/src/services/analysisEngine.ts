@@ -8,6 +8,7 @@ import { calculateLiquidity } from "./liquidity";
 import { calculateRentalYield } from "./rentalYield";
 import { calculateTrends } from "./trends";
 import { getTierLimits } from "../middleware/tierAccess";
+import type { PriceFairnessResult } from "./priceFairness";
 
 export interface PropertyInput {
   propertyType: string;
@@ -181,5 +182,62 @@ export async function runAnalysis(analysisId: string, property: PropertyInput, u
       .update(analysesTable)
       .set({ status: "failed" })
       .where(eq(analysesTable.id, analysisId));
+  }
+}
+
+/**
+ * Re-runs only the priceFairness module for a single analysis and persists the
+ * updated priceFairness result and recalculated overallScore.  Called by the
+ * scheduler after a successful DLD ingestion to refresh analyses that were
+ * previously flagged as stale.
+ */
+export async function refreshStalePriceFairness(analysisId: string): Promise<void> {
+  const [analysis] = await db
+    .select()
+    .from(analysesTable)
+    .where(eq(analysesTable.id, analysisId));
+
+  if (!analysis) {
+    console.warn(`refreshStalePriceFairness: analysis ${analysisId} not found`);
+    return;
+  }
+
+  const property = analysis.propertyData as PropertyInput;
+  const currentResults = (analysis.results as Record<string, unknown>) ?? {};
+
+  try {
+    const newPriceFairness: PriceFairnessResult = await calculatePriceFairness({
+      community: property.community,
+      emirate: property.emirate,
+      propertyType: property.propertyType,
+      bedrooms: property.bedrooms,
+      sizeSqft: property.sizeSqft,
+      listedPrice: property.listedPrice,
+      floorNumber: property.floorNumber,
+      viewType: property.viewType,
+      furnished: property.furnished,
+      yearBuilt: property.yearBuilt,
+    });
+
+    const updatedResults = { ...currentResults, priceFairness: newPriceFairness };
+    const newOverallScore = computeOverallScore(updatedResults);
+
+    await db
+      .update(analysesTable)
+      .set({
+        results: updatedResults,
+        overallScore: newOverallScore.toString(),
+      })
+      .where(eq(analysesTable.id, analysisId));
+
+    console.log(
+      `Refreshed stale price fairness for analysis ${analysisId} ` +
+      `(new score: ${newOverallScore}, freshness: ${newPriceFairness.dataFreshnessDate})`
+    );
+  } catch (err) {
+    console.warn(
+      `refreshStalePriceFairness: failed for analysis ${analysisId}:`,
+      err instanceof Error ? err.message : err
+    );
   }
 }

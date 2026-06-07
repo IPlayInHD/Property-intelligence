@@ -1,9 +1,10 @@
 import cron from "node-cron";
 import { db } from "@workspace/db";
-import { dldTransactionsTable, listingsTable, macroDataTable } from "@workspace/db";
-import { eq, sql, and, lt, max } from "drizzle-orm";
+import { dldTransactionsTable, listingsTable, macroDataTable, analysesTable } from "@workspace/db";
+import { eq, sql, and, lt, max, gt } from "drizzle-orm";
 import { fetchDldTransactions, getAccessToken } from "../services/dubaiPulse";
 import { getWorldBankGdpGrowth } from "../services/cbuae";
+import { refreshStalePriceFairness } from "../services/analysisEngine";
 
 const ALL_COMMUNITIES: { community: string; emirate: string }[] = [
   { community: "Downtown Dubai", emirate: "Dubai" },
@@ -147,6 +148,89 @@ export async function runDldIngestion(): Promise<{ inserted: number; errors: num
   return { inserted: totalInserted, errors: totalErrors };
 }
 
+/**
+ * After a successful DLD ingestion, find all complete analyses whose
+ * priceFairness.dataFreshnessDate is older than 6 months and whose community
+ * now has newer transactions in the DB.  For each such analysis, re-run the
+ * priceFairness module and persist the updated result and overallScore.
+ */
+export async function refreshStaleAnalyses(): Promise<{ refreshed: number; skipped: number }> {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const sixMonthsAgoStr = sixMonthsAgo.toISOString().split("T")[0];
+
+  // Find complete analyses whose priceFairness data is older than 6 months.
+  // The results column is jsonb; we use PostgreSQL json operators to filter.
+  const staleAnalyses = await db
+    .select({
+      id: analysesTable.id,
+      propertyData: analysesTable.propertyData,
+      results: analysesTable.results,
+    })
+    .from(analysesTable)
+    .where(
+      and(
+        eq(analysesTable.status, "complete"),
+        sql`${analysesTable.results}->'priceFairness'->>'dataFreshnessDate' IS NOT NULL`,
+        sql`${analysesTable.results}->'priceFairness'->>'dataFreshnessDate' < ${sixMonthsAgoStr}`
+      )
+    );
+
+  if (staleAnalyses.length === 0) {
+    console.log("Stale-analysis refresh: no stale analyses found");
+    return { refreshed: 0, skipped: 0 };
+  }
+
+  console.log(`Stale-analysis refresh: found ${staleAnalyses.length} stale analyses`);
+
+  let refreshed = 0;
+  let skipped = 0;
+
+  for (const analysis of staleAnalyses) {
+    const property = analysis.propertyData as { community?: string };
+    const community = property?.community;
+    if (!community) {
+      skipped++;
+      continue;
+    }
+
+    const pf = (analysis.results as Record<string, unknown> | null)?.priceFairness as
+      | { dataFreshnessDate?: string | null }
+      | undefined;
+    const dataFreshnessDate = pf?.dataFreshnessDate;
+
+    if (!dataFreshnessDate) {
+      skipped++;
+      continue;
+    }
+
+    // Only refresh if the community now has a transaction newer than the stored freshness date.
+    const [latestRow] = await db
+      .select({ latest: max(dldTransactionsTable.transactionDate) })
+      .from(dldTransactionsTable)
+      .where(
+        and(
+          eq(dldTransactionsTable.community, community),
+          gt(dldTransactionsTable.transactionDate, dataFreshnessDate)
+        )
+      );
+
+    if (!latestRow?.latest) {
+      skipped++;
+      continue;
+    }
+
+    await refreshStalePriceFairness(analysis.id);
+    refreshed++;
+  }
+
+  console.log(
+    `Stale-analysis refresh complete — refreshed ${refreshed}, skipped ${skipped} ` +
+    `(no newer transactions or missing data)`
+  );
+  return { refreshed, skipped };
+}
+
 async function updateListingDurations(): Promise<void> {
   try {
     const sevenDaysAgo = new Date();
@@ -193,8 +277,15 @@ export function startScheduler(): void {
   // Every night at 10pm UTC (2am UAE time, GMT+4)
   cron.schedule("0 22 * * *", async () => {
     console.log("Running nightly DLD ingestion...");
-    await runDldIngestion();
+    const { inserted } = await runDldIngestion();
     await updateListingDurations();
+
+    // Re-score any stale analyses now that fresh comparables may have arrived.
+    // Only bother if the ingestion actually added new transactions.
+    if (inserted > 0) {
+      console.log("New transactions ingested — checking for stale analyses to refresh...");
+      await refreshStaleAnalyses();
+    }
   });
 
   // Every Monday at 2am UTC (6am UAE time)
