@@ -1,11 +1,14 @@
-import { useState, useCallback } from "react";
-import { useLocation, Link } from "wouter";
-import { useGetListings, getGetListingsQueryKey } from "@workspace/api-client-react";
+import { useState, useCallback, useEffect } from "react";
+import { useLocation, useSearch, Link } from "wouter";
+import {
+  useGetListings,
+  useGetCommunities,
+  getGetListingsQueryKey,
+} from "@workspace/api-client-react";
 import type { Listing } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, LayoutGrid, List, BedDouble, Maximize2,
@@ -32,8 +35,8 @@ function communityGradient(community: string | null | undefined): string {
 function SourceBadge({ source }: { source: string | null | undefined }) {
   if (!source) return null;
   const map: Record<string, { label: string; cls: string }> = {
-    bayut:          { label: "Bayut",   cls: "bg-red-600 text-white" },
-    propertyfinder: { label: "Finder",  cls: "bg-blue-700 text-white" },
+    bayut:          { label: "Bayut",    cls: "bg-red-600 text-white" },
+    propertyfinder: { label: "Finder",   cls: "bg-blue-700 text-white" },
     dubizzle:       { label: "Dubizzle", cls: "bg-green-700 text-white" },
   };
   const cfg = map[source] ?? { label: source, cls: "bg-muted text-foreground" };
@@ -57,58 +60,77 @@ function ScoreBadge({ score }: { score: number | null | undefined }) {
 
 function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "list" }) {
   const gradient = communityGradient(listing.community);
+  const hasReport = !!listing.existingAnalysisId;
 
   if (view === "list") {
     return (
-      <Link href={`/listings/${listing.id}`}>
-        <div className="group flex gap-4 bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl p-4 cursor-pointer transition-all">
-          <div className={`w-24 h-20 rounded-lg bg-gradient-to-br ${gradient} shrink-0 flex items-center justify-center`}>
-            <span className="text-white/80 text-xs font-medium text-center px-2 leading-tight">
-              {listing.community}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <SourceBadge source={listing.source} />
-                  {listing.existingAnalysisId && <ScoreBadge score={listing.existingScore} />}
+      <div className="group flex gap-4 bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl p-4 transition-all">
+        <Link href={`/listings/${listing.id}`} className="flex-1">
+          <div className="flex gap-4">
+            <div className={`w-24 h-20 rounded-lg bg-gradient-to-br ${gradient} shrink-0 flex items-center justify-center`}>
+              <span className="text-white/80 text-xs font-medium text-center px-2 leading-tight">
+                {listing.community}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <SourceBadge source={listing.source} />
+                    {hasReport && <ScoreBadge score={listing.existingScore} />}
+                  </div>
+                  <h3 className="font-semibold text-sm leading-snug">
+                    {listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} Bed`}{" "}
+                    <span className="capitalize">{listing.propertyType}</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground truncate">{listing.buildingName} · {listing.community}</p>
                 </div>
-                <h3 className="font-semibold text-sm leading-snug">
-                  {listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} Bed`}{" "}
-                  <span className="capitalize">{listing.propertyType}</span>
-                </h3>
-                <p className="text-xs text-muted-foreground truncate">{listing.buildingName} · {listing.community}</p>
+                <div className="text-right shrink-0">
+                  <p className="font-bold text-primary font-mono text-sm">
+                    AED {listing.listedPrice?.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    AED {listing.pricePerSqft?.toLocaleString()} /sqft
+                  </p>
+                </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="font-bold text-primary font-mono text-sm">
-                  AED {listing.listedPrice?.toLocaleString()}
-                </p>
-                <p className="text-xs text-muted-foreground font-mono">
-                  AED {listing.pricePerSqft?.toLocaleString()} /sqft
-                </p>
+              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                {listing.bedrooms !== null && <span className="flex items-center gap-1"><BedDouble className="h-3 w-3" />{listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} BR`}</span>}
+                {listing.sizeSqft && <span className="flex items-center gap-1"><Maximize2 className="h-3 w-3" />{listing.sizeSqft?.toLocaleString()} sqft</span>}
+                {listing.viewType && listing.viewType !== "None" && <span>{listing.viewType} view</span>}
+                {listing.furnished && <span>Furnished</span>}
+                <span className="ml-auto">{listing.daysListed}d listed</span>
               </div>
-            </div>
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-              {listing.bedrooms !== null && <span className="flex items-center gap-1"><BedDouble className="h-3 w-3" />{listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} BR`}</span>}
-              {listing.sizeSqft && <span className="flex items-center gap-1"><Maximize2 className="h-3 w-3" />{listing.sizeSqft?.toLocaleString()} sqft</span>}
-              {listing.viewType && listing.viewType !== "None" && <span>{listing.viewType} view</span>}
-              {listing.furnished && <span>Furnished</span>}
-              <span className="ml-auto">{listing.daysListed}d listed</span>
             </div>
           </div>
+        </Link>
+        <div className="flex flex-col gap-2 justify-center shrink-0 ml-2">
+          {listing.listingUrl && (
+            <a href={listing.listingUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs w-full">
+                <ExternalLink className="h-3 w-3" />
+                View Listing
+              </Button>
+            </a>
+          )}
+          <Link href={`/listings/${listing.id}`}>
+            <Button size="sm" className="gap-1.5 text-xs w-full" variant={hasReport ? "secondary" : "default"}>
+              <Zap className="h-3 w-3" />
+              {hasReport ? "View Report" : "Analyse"}
+            </Button>
+          </Link>
         </div>
-      </Link>
+      </div>
     );
   }
 
   return (
-    <Link href={`/listings/${listing.id}`}>
-      <div className="group bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-md hover:shadow-primary/5">
-        <div className={`relative h-44 bg-gradient-to-br ${gradient} flex items-end p-4`}>
+    <div className="group bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl overflow-hidden transition-all hover:shadow-md hover:shadow-primary/5 flex flex-col">
+      <Link href={`/listings/${listing.id}`}>
+        <div className={`relative h-40 bg-gradient-to-br ${gradient} flex items-end p-4 cursor-pointer`}>
           <div className="absolute top-3 left-3 flex gap-1.5">
             <SourceBadge source={listing.source} />
-            {listing.existingAnalysisId && <ScoreBadge score={listing.existingScore} />}
+            {hasReport && <ScoreBadge score={listing.existingScore} />}
           </div>
           {listing.viewType && listing.viewType !== "None" && (
             <span className="absolute top-3 right-3 text-[10px] bg-black/40 text-white px-1.5 py-0.5 rounded">
@@ -120,32 +142,44 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
             <div className="text-xs text-white/70 font-mono">{listing.pricePerSqft?.toLocaleString()} /sqft</div>
           </div>
         </div>
-        <div className="p-4">
-          <h3 className="font-semibold text-sm">
+      </Link>
+      <div className="p-4 flex flex-col flex-1">
+        <Link href={`/listings/${listing.id}`}>
+          <h3 className="font-semibold text-sm cursor-pointer hover:text-primary transition-colors">
             {listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} Bed`}{" "}
             <span className="capitalize">{listing.propertyType}</span>
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">{listing.buildingName}</p>
           <p className="text-xs text-muted-foreground">{listing.community}, {listing.emirate}</p>
-          <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground border-t border-border/30 pt-3">
-            {listing.bedrooms !== null && (
-              <span className="flex items-center gap-1"><BedDouble className="h-3 w-3" />{listing.bedrooms === 0 ? "Studio" : listing.bedrooms}</span>
-            )}
-            {listing.sizeSqft && (
-              <span className="flex items-center gap-1"><Maximize2 className="h-3 w-3" />{listing.sizeSqft?.toLocaleString()}</span>
-            )}
-            {listing.furnished && <span>Furnished</span>}
-            <span className="ml-auto">{listing.daysListed}d</span>
-          </div>
-          <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="flex items-center gap-1 text-xs text-primary font-medium">
+        </Link>
+        <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground border-t border-border/30 pt-3">
+          {listing.bedrooms !== null && (
+            <span className="flex items-center gap-1"><BedDouble className="h-3 w-3" />{listing.bedrooms === 0 ? "Studio" : listing.bedrooms}</span>
+          )}
+          {listing.sizeSqft && (
+            <span className="flex items-center gap-1"><Maximize2 className="h-3 w-3" />{listing.sizeSqft?.toLocaleString()}</span>
+          )}
+          {listing.furnished && <span>Furnished</span>}
+          <span className="ml-auto">{listing.daysListed}d</span>
+        </div>
+        <div className="flex gap-2 mt-3">
+          {listing.listingUrl && (
+            <a href={listing.listingUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+              <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
+                <ExternalLink className="h-3 w-3" />
+                View Listing
+              </Button>
+            </a>
+          )}
+          <Link href={`/listings/${listing.id}`} className={listing.listingUrl ? "flex-1" : "w-full"}>
+            <Button size="sm" className="w-full gap-1.5 text-xs" variant={hasReport ? "secondary" : "default"}>
               <Zap className="h-3 w-3" />
-              {listing.existingAnalysisId ? "View Report" : "Run PropIQ Analysis"}
-            </div>
-          </div>
+              {hasReport ? "View Report" : "Analyse"}
+            </Button>
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -160,24 +194,46 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 
 export default function Listings() {
   const [, setLocation] = useLocation();
-  const [search, setSearch] = useState("");
+  const searchStr = useSearch();
+
+  // Parse initial ?q= from URL (e.g. when navigated from dashboard search)
+  const initialQ = new URLSearchParams(searchStr).get("q") ?? "";
+
+  const [search, setSearch] = useState(initialQ);
   const [propertyType, setPropertyType] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [emirate, setEmirate] = useState("");
+  const [community, setCommunity] = useState("");
   const [furnished, setFurnished] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [sizeMin, setSizeMin] = useState("");
+  const [sizeMax, setSizeMax] = useState("");
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
-  const debouncedSearch = search;
+  // Update search if the URL changes (e.g. navigating back with different q)
+  useEffect(() => {
+    const q = new URLSearchParams(searchStr).get("q") ?? "";
+    if (q !== search) setSearch(q);
+  }, [searchStr]);
+
+  const { data: communitiesData } = useGetCommunities();
+  const communities = (communitiesData ?? []) as { id: number; name: string; emirate: string }[];
 
   const params: Record<string, string | number> = { page, limit: 24, sort };
-  if (debouncedSearch) params.q = debouncedSearch;
+  if (search) params.q = search;
   if (propertyType) params.propertyType = propertyType;
   if (bedrooms) params.bedrooms = parseInt(bedrooms);
   if (emirate) params.emirate = emirate;
+  if (community) params.q = community; // community overrides q for community filter
   if (furnished) params.furnished = furnished;
+  if (priceMin) params.priceMin = priceMin;
+  if (priceMax) params.priceMax = priceMax;
+  if (sizeMin) params.sizeMin = sizeMin;
+  if (sizeMax) params.sizeMax = sizeMax;
 
   const { data, isLoading } = useGetListings(params as any, {
     query: { queryKey: getGetListingsQueryKey(params as any) },
@@ -187,18 +243,16 @@ export default function Listings() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / 24);
 
-  const hasFilters = !!(propertyType || bedrooms || emirate || furnished);
+  const activeFilterCount = [propertyType, bedrooms, emirate, community, furnished, priceMin, priceMax, sizeMin, sizeMax].filter(Boolean).length;
 
   const clearFilters = useCallback(() => {
-    setPropertyType("");
-    setBedrooms("");
-    setEmirate("");
-    setFurnished("");
+    setPropertyType(""); setBedrooms(""); setEmirate(""); setCommunity("");
+    setFurnished(""); setPriceMin(""); setPriceMax(""); setSizeMin(""); setSizeMax("");
     setPage(1);
   }, []);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -216,9 +270,9 @@ export default function Listings() {
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
-            {hasFilters && (
+            {activeFilterCount > 0 && (
               <span className="bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                {[propertyType, bedrooms, emirate, furnished].filter(Boolean).length}
+                {activeFilterCount}
               </span>
             )}
           </Button>
@@ -247,11 +301,11 @@ export default function Listings() {
             placeholder="Search community, building, area..."
             className="pl-9 bg-card/60"
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => { setSearch(e.target.value); setCommunity(""); setPage(1); }}
           />
         </div>
         <Select value={sort} onValueChange={(v) => { setSort(v); setPage(1); }}>
-          <SelectTrigger className="w-40 bg-card/60">
+          <SelectTrigger className="w-44 bg-card/60">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -266,7 +320,8 @@ export default function Listings() {
 
       {/* Expanded filters */}
       {showFilters && (
-        <div className="bg-card/60 border border-border/50 rounded-xl p-4">
+        <div className="bg-card/60 border border-border/50 rounded-xl p-5 space-y-4">
+          {/* Row 1: Type + Beds + Emirate + Community */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Property type</label>
@@ -310,6 +365,62 @@ export default function Listings() {
               </Select>
             </div>
             <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Community</label>
+              <Select value={community} onValueChange={(v) => { setCommunity(v === "all" ? "" : v); setSearch(""); setPage(1); }}>
+                <SelectTrigger className="bg-background/50"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  {communities.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 2: Price range + Size range + Furnished */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="col-span-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Price min (AED)</label>
+              <Input
+                type="number"
+                placeholder="0"
+                className="bg-background/50 font-mono text-sm"
+                value={priceMin}
+                onChange={(e) => { setPriceMin(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="col-span-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Price max (AED)</label>
+              <Input
+                type="number"
+                placeholder="Any"
+                className="bg-background/50 font-mono text-sm"
+                value={priceMax}
+                onChange={(e) => { setPriceMax(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="col-span-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Size min (sqft)</label>
+              <Input
+                type="number"
+                placeholder="0"
+                className="bg-background/50 font-mono text-sm"
+                value={sizeMin}
+                onChange={(e) => { setSizeMin(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="col-span-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Size max (sqft)</label>
+              <Input
+                type="number"
+                placeholder="Any"
+                className="bg-background/50 font-mono text-sm"
+                value={sizeMax}
+                onChange={(e) => { setSizeMax(e.target.value); setPage(1); }}
+              />
+            </div>
+            <div className="col-span-1">
               <label className="text-xs text-muted-foreground mb-1 block">Furnished</label>
               <Select value={furnished} onValueChange={(v) => { setFurnished(v === "all" ? "" : v); setPage(1); }}>
                 <SelectTrigger className="bg-background/50"><SelectValue placeholder="Any" /></SelectTrigger>
@@ -321,13 +432,20 @@ export default function Listings() {
               </Select>
             </div>
           </div>
-          {hasFilters && (
-            <div className="flex items-center gap-2 mt-3 flex-wrap">
+
+          {/* Active filter chips */}
+          {activeFilterCount > 0 && (
+            <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/30">
               {propertyType && <FilterChip label={propertyType} onRemove={() => setPropertyType("")} />}
               {bedrooms && <FilterChip label={bedrooms === "0" ? "Studio" : `${bedrooms} BR`} onRemove={() => setBedrooms("")} />}
               {emirate && <FilterChip label={emirate} onRemove={() => setEmirate("")} />}
+              {community && <FilterChip label={community} onRemove={() => setCommunity("")} />}
               {furnished === "true" && <FilterChip label="Furnished" onRemove={() => setFurnished("")} />}
               {furnished === "false" && <FilterChip label="Unfurnished" onRemove={() => setFurnished("")} />}
+              {priceMin && <FilterChip label={`≥ AED ${parseInt(priceMin).toLocaleString()}`} onRemove={() => setPriceMin("")} />}
+              {priceMax && <FilterChip label={`≤ AED ${parseInt(priceMax).toLocaleString()}`} onRemove={() => setPriceMax("")} />}
+              {sizeMin && <FilterChip label={`≥ ${sizeMin} sqft`} onRemove={() => setSizeMin("")} />}
+              {sizeMax && <FilterChip label={`≤ ${sizeMax} sqft`} onRemove={() => setSizeMax("")} />}
               <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline">
                 Clear all
               </button>
@@ -340,7 +458,7 @@ export default function Listings() {
       {isLoading ? (
         <div className={view === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
           {Array(12).fill(0).map((_, i) => (
-            <Skeleton key={i} className={view === "grid" ? "h-72 rounded-xl" : "h-24 rounded-xl"} />
+            <Skeleton key={i} className={view === "grid" ? "h-80 rounded-xl" : "h-24 rounded-xl"} />
           ))}
         </div>
       ) : listings.length === 0 ? (
@@ -348,7 +466,7 @@ export default function Listings() {
           <Search className="h-10 w-10 mx-auto mb-4 opacity-30" />
           <p className="text-lg font-medium mb-1">No listings found</p>
           <p className="text-sm">Try adjusting your search or filters</p>
-          {hasFilters && (
+          {activeFilterCount > 0 && (
             <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
               Clear filters
             </Button>

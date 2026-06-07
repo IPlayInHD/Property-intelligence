@@ -5,10 +5,12 @@ import {
   useGetListing,
   useCreateAnalysis,
   useGetAnalysis,
+  useGetCommunities,
   getGetListingQueryKey,
   getGetAnalysisQueryKey,
 } from "@workspace/api-client-react";
 import type { Listing } from "@workspace/api-client-react";
+import CommunityMap from "@/components/ui/CommunityMap";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -246,6 +248,9 @@ export default function ListingDetail() {
   const [pendingAnalysisId, setPendingAnalysisId] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
+  const { data: communitiesData } = useGetCommunities();
+  const communities = (communitiesData ?? []) as { id: number; name: string; emirate: string; latitude: number; longitude: number }[];
+
   const { data: listing, isLoading, isError } = useGetListing(numId, {
     query: { queryKey: getGetListingQueryKey(numId), enabled: !isNaN(numId) },
   });
@@ -307,6 +312,10 @@ export default function ListingDetail() {
   const hasReport = !!(listing as any).existingAnalysisId;
   const existingScore = (listing as any).existingScore;
   const similar = (listing as any).similar ?? [];
+
+  const communityGeo = communities.find(
+    (c) => c.name.toLowerCase() === (listing.community ?? "").toLowerCase()
+  );
 
   const specs = [
     { icon: BedDouble, label: "Bedrooms", value: listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} BR` },
@@ -418,6 +427,20 @@ export default function ListingDetail() {
             </Card>
           ))}
         </div>
+
+        {/* Community map */}
+        {communityGeo && (
+          <div>
+            <h2 className="text-lg font-serif font-bold mb-3">Location</h2>
+            <CommunityMap
+              latitude={communityGeo.latitude}
+              longitude={communityGeo.longitude}
+              community={listing.community ?? ""}
+              emirate={listing.emirate ?? ""}
+              className="h-56 w-full"
+            />
+          </div>
+        )}
 
         {/* What PropIQ analyses */}
         {!hasReport && (

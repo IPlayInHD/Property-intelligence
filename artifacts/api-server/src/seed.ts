@@ -540,7 +540,7 @@ async function seedListings() {
     firstSeen.setDate(firstSeen.getDate() - l.daysAgo);
     const psf = Math.round(l.listedPrice / l.sizeSqft);
     return {
-      source: SOURCES[i % SOURCES.length],
+      source: l.source,
       listingUrl: buildListingUrl(l.source, l.community, i + 1001),
       community: l.community,
       emirate: l.emirate,

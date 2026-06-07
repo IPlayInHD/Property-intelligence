@@ -53,6 +53,60 @@ router.get("/listings", requireAuth, async (req: AuthRequest, res) => {
 
     const whereClause = and(...conditions);
 
+    const userId = req.user!.id;
+
+    // For score sort: fetch user's analysis scores first, then sort globally before pagination
+    if (sort === "score") {
+      const [allRows, totalResult, userAnalyses] = await Promise.all([
+        db.select().from(listingsTable).where(whereClause),
+        db.select({ count: sql<string>`count(*)` }).from(listingsTable).where(whereClause),
+        db.select({
+          analysisId: analysesTable.id,
+          listingId: sql<string>`(${analysesTable.propertyData}->>'listingId')`,
+          score: analysesTable.overallScore,
+        })
+          .from(analysesTable)
+          .where(and(
+            eq(analysesTable.userId, userId),
+            eq(analysesTable.status, "complete"),
+            sql`(${analysesTable.propertyData}->>'listingId') IS NOT NULL`,
+          )),
+      ]);
+
+      const analysisMap = new Map<number, { id: string; score: number | null }>();
+      for (const a of userAnalyses) {
+        const lid = parseInt(a.listingId);
+        if (!isNaN(lid)) {
+          analysisMap.set(lid, {
+            id: a.analysisId,
+            score: a.score ? parseFloat(String(a.score)) : null,
+          });
+        }
+      }
+
+      // Sort globally by score (scored listings first, desc), then paginate
+      allRows.sort((a, b) => {
+        const sa = analysisMap.get(a.id)?.score ?? -1;
+        const sb = analysisMap.get(b.id)?.score ?? -1;
+        return sb - sa;
+      });
+
+      const pageRows = allRows.slice(offset, offset + limitNum);
+      const listings = pageRows.map((r) => parseListing({
+        ...r,
+        existingAnalysisId: analysisMap.get(r.id)?.id ?? null,
+        existingScore: analysisMap.get(r.id)?.score ?? null,
+      }));
+
+      res.json({
+        listings,
+        total: parseInt(totalResult[0].count),
+        page: pageNum,
+        limit: limitNum,
+      });
+      return;
+    }
+
     let orderCol;
     switch (sort) {
       case "price-asc": orderCol = asc(listingsTable.listedPrice); break;
@@ -67,7 +121,6 @@ router.get("/listings", requireAuth, async (req: AuthRequest, res) => {
       db.select({ count: sql<string>`count(*)` }).from(listingsTable).where(whereClause),
     ]);
 
-    const userId = req.user!.id;
     const listingIds = rows.map((r) => r.id);
 
     let analysisMap = new Map<number, { id: string; score: number | null }>();
@@ -96,17 +149,7 @@ router.get("/listings", requireAuth, async (req: AuthRequest, res) => {
       }
     }
 
-    // For score sort, re-sort rows in JS
-    let sortedRows = rows;
-    if (sort === "score") {
-      sortedRows = [...rows].sort((a, b) => {
-        const sa = analysisMap.get(a.id)?.score ?? -1;
-        const sb = analysisMap.get(b.id)?.score ?? -1;
-        return sb - sa;
-      });
-    }
-
-    const listings = sortedRows.map((r) => parseListing({
+    const listings = rows.map((r) => parseListing({
       ...r,
       existingAnalysisId: analysisMap.get(r.id)?.id ?? null,
       existingScore: analysisMap.get(r.id)?.score ?? null,
