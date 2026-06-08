@@ -350,7 +350,7 @@ export default function Listings() {
             placeholder="Search community, building, area..."
             className="pl-9 bg-card/60"
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setCommunity(""); setPage(1); }}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
         <Select value={sort} onValueChange={(v) => { setSort(v); setPage(1); }}>
@@ -415,7 +415,7 @@ export default function Listings() {
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Community</label>
-              <Select value={community} onValueChange={(v) => { setCommunity(v === "all" ? "" : v); setSearch(""); setPage(1); }}>
+              <Select value={community} onValueChange={(v) => { setCommunity(v === "all" ? "" : v); setPage(1); }}>
                 <SelectTrigger className="bg-background/50 h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any</SelectItem>
