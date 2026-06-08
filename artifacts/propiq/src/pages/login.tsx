@@ -19,7 +19,7 @@ const formSchema = z.object({
 
 export default function Login() {
   const { onLoginSuccess } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -34,7 +34,9 @@ export default function Login() {
     mutation: {
       onSuccess: () => {
         onLoginSuccess();
-        setLocation("/dashboard");
+        const params = new URLSearchParams(location.split("?")[1] ?? "");
+        const returnTo = params.get("returnTo");
+        setLocation(returnTo && returnTo.startsWith("/") ? returnTo : "/dashboard");
         toast({ title: "Welcome back!" });
       },
       onError: (error) => {

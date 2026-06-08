@@ -525,27 +525,11 @@ const LISTINGS_RAW: ListingSeedRow[] = [
   { source: "dubizzle",        community: "Dubai Hills",     emirate: "Dubai", buildingName: "Acacia",                    propertyType: "apartment", bedrooms: 2, sizeSqft: 1200, listedPrice: 1750000,  viewType: "Garden",    furnished: true,  daysAgo: 3 },
 ];
 
-function buildListingUrl(source: string, community: string, buildingName: string): string {
-  const bayutSlug: Record<string, string> = {
-    "Dubai Marina":    "dubai-marina",
-    "Downtown Dubai":  "downtown-dubai",
-    "JVC":             "jumeirah-village-circle",
-    "Business Bay":    "business-bay",
-    "Palm Jumeirah":   "palm-jumeirah",
-    "JBR":             "jumeirah-beach-residence",
-    "Arabian Ranches": "arabian-ranches",
-    "Mirdif":          "mirdif",
-    "Dubai Hills":     "dubai-hills-estate",
-  };
-  const enc = (s: string) => encodeURIComponent(s);
-  if (source === "bayut") {
-    const slug = bayutSlug[community] ?? community.toLowerCase().replace(/\s+/g, "-");
-    return `https://www.bayut.com/to-buy/property-in-${slug}/?keywords=${enc(buildingName)}`;
-  }
-  if (source === "propertyfinder") {
-    return `https://www.propertyfinder.ae/en/search/?c=1&t=1&q=${enc(buildingName + " " + community)}&ob=mr`;
-  }
-  return `https://dubai.dubizzle.com/en/residences/apartments-for-sale/?q=${enc(buildingName)}`;
+function buildListingUrl(_source: string, _community: string, _buildingName: string): null {
+  // Seed data does not have canonical platform listing IDs.
+  // Returning null hides the "View Listing" external link rather than pointing
+  // to a search results page that would show an error to the user.
+  return null;
 }
 
 async function seedListings() {

@@ -5,13 +5,14 @@ import { Loader2 } from "lucide-react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !user) {
-      setLocation("/login");
+      const returnTo = location !== "/login" ? `?returnTo=${encodeURIComponent(location)}` : "";
+      setLocation(`/login${returnTo}`);
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, location, setLocation]);
 
   if (isLoading) {
     return (
