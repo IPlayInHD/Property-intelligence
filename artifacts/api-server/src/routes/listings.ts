@@ -21,7 +21,7 @@ function parseListing(r: typeof listingsTable.$inferSelect & { existingAnalysisI
 router.get("/listings", requireAuth, async (req: AuthRequest, res) => {
   try {
     const {
-      q, emirate, propertyType, bedrooms,
+      q, community: communityFilter, emirate, propertyType, bedrooms,
       priceMin, priceMax, sizeMin, sizeMax,
       viewType, furnished, sort,
       page = "1", limit = "24",
@@ -39,6 +39,9 @@ router.get("/listings", requireAuth, async (req: AuthRequest, res) => {
         ilike(listingsTable.buildingName, `%${q}%`),
         ilike(listingsTable.emirate, `%${q}%`),
       ) as any);
+    }
+    if (communityFilter) {
+      conditions.push(ilike(listingsTable.community, `%${communityFilter}%`) as any);
     }
     if (emirate) conditions.push(eq(listingsTable.emirate, emirate) as any);
     if (propertyType) conditions.push(eq(listingsTable.propertyType, propertyType) as any);

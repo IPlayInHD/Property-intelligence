@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useLocation, useSearch, Link } from "wouter";
+import { useSearch, Link } from "wouter";
 import {
   useGetListings,
   useGetCommunities,
@@ -9,12 +9,34 @@ import type { Listing } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, LayoutGrid, List, BedDouble, Maximize2,
   ChevronLeft, ChevronRight, SlidersHorizontal, X,
   ExternalLink, Zap, TrendingUp,
 } from "lucide-react";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const PRICE_MIN = 200_000;
+const PRICE_MAX = 20_000_000;
+const PRICE_STEP = 100_000;
+const SIZE_MIN = 200;
+const SIZE_MAX = 10_000;
+const SIZE_STEP = 50;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtPrice(v: number): string {
+  if (v >= 1_000_000) {
+    const m = v / 1_000_000;
+    return `AED ${m % 1 === 0 ? m : m.toFixed(1)}M`;
+  }
+  return `AED ${(v / 1_000).toFixed(0)}K`;
+}
+
+function fmtSize(v: number): string {
+  return `${v.toLocaleString()} sqft`;
+}
 
 function communityGradient(community: string | null | undefined): string {
   const s = community ?? "";
@@ -58,6 +80,7 @@ function ScoreBadge({ score }: { score: number | null | undefined }) {
   );
 }
 
+// ─── Property cards ───────────────────────────────────────────────────────────
 function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "list" }) {
   const gradient = communityGradient(listing.community);
   const hasReport = !!listing.existingAnalysisId;
@@ -95,8 +118,18 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
                 </div>
               </div>
               <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                {listing.bedrooms !== null && <span className="flex items-center gap-1"><BedDouble className="h-3 w-3" />{listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} BR`}</span>}
-                {listing.sizeSqft && <span className="flex items-center gap-1"><Maximize2 className="h-3 w-3" />{listing.sizeSqft?.toLocaleString()} sqft</span>}
+                {listing.bedrooms !== null && (
+                  <span className="flex items-center gap-1">
+                    <BedDouble className="h-3 w-3" />
+                    {listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} BR`}
+                  </span>
+                )}
+                {listing.sizeSqft && (
+                  <span className="flex items-center gap-1">
+                    <Maximize2 className="h-3 w-3" />
+                    {listing.sizeSqft?.toLocaleString()} sqft
+                  </span>
+                )}
                 {listing.viewType && listing.viewType !== "None" && <span>{listing.viewType} view</span>}
                 {listing.furnished && <span>Furnished</span>}
                 <span className="ml-auto">{listing.daysListed}d listed</span>
@@ -116,7 +149,7 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
           <Link href={`/listings/${listing.id}`}>
             <Button size="sm" className="gap-1.5 text-xs w-full" variant={hasReport ? "secondary" : "default"}>
               <Zap className="h-3 w-3" />
-              {hasReport ? "View Report" : "Analyse"}
+              {hasReport ? "View Report" : "Run PropIQ Analysis"}
             </Button>
           </Link>
         </div>
@@ -154,10 +187,16 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
         </Link>
         <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground border-t border-border/30 pt-3">
           {listing.bedrooms !== null && (
-            <span className="flex items-center gap-1"><BedDouble className="h-3 w-3" />{listing.bedrooms === 0 ? "Studio" : listing.bedrooms}</span>
+            <span className="flex items-center gap-1">
+              <BedDouble className="h-3 w-3" />
+              {listing.bedrooms === 0 ? "Studio" : listing.bedrooms}
+            </span>
           )}
           {listing.sizeSqft && (
-            <span className="flex items-center gap-1"><Maximize2 className="h-3 w-3" />{listing.sizeSqft?.toLocaleString()}</span>
+            <span className="flex items-center gap-1">
+              <Maximize2 className="h-3 w-3" />
+              {listing.sizeSqft?.toLocaleString()}
+            </span>
           )}
           {listing.furnished && <span>Furnished</span>}
           <span className="ml-auto">{listing.daysListed}d</span>
@@ -174,7 +213,7 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
           <Link href={`/listings/${listing.id}`} className={listing.listingUrl ? "flex-1" : "w-full"}>
             <Button size="sm" className="w-full gap-1.5 text-xs" variant={hasReport ? "secondary" : "default"}>
               <Zap className="h-3 w-3" />
-              {hasReport ? "View Report" : "Analyse"}
+              {hasReport ? "View Report" : "Run PropIQ Analysis"}
             </Button>
           </Link>
         </div>
@@ -192,11 +231,10 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function Listings() {
-  const [, setLocation] = useLocation();
   const searchStr = useSearch();
 
-  // Parse initial ?q= from URL (e.g. when navigated from dashboard search)
   const initialQ = new URLSearchParams(searchStr).get("q") ?? "";
 
   const [search, setSearch] = useState(initialQ);
@@ -204,17 +242,17 @@ export default function Listings() {
   const [bedrooms, setBedrooms] = useState("");
   const [emirate, setEmirate] = useState("");
   const [community, setCommunity] = useState("");
+  const [viewType, setViewType] = useState("");
   const [furnished, setFurnished] = useState("");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [sizeMin, setSizeMin] = useState("");
-  const [sizeMax, setSizeMax] = useState("");
+  const [priceRange, setPriceRange] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
+  const [sizeRange, setSizeRange] = useState<[number, number]>([SIZE_MIN, SIZE_MAX]);
+  const [priceActive, setPriceActive] = useState(false);
+  const [sizeActive, setSizeActive] = useState(false);
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Update search if the URL changes (e.g. navigating back with different q)
   useEffect(() => {
     const q = new URLSearchParams(searchStr).get("q") ?? "";
     if (q !== search) setSearch(q);
@@ -228,12 +266,17 @@ export default function Listings() {
   if (propertyType) params.propertyType = propertyType;
   if (bedrooms) params.bedrooms = parseInt(bedrooms);
   if (emirate) params.emirate = emirate;
-  if (community) params.q = community; // community overrides q for community filter
+  if (community) params.community = community;
+  if (viewType) params.viewType = viewType;
   if (furnished) params.furnished = furnished;
-  if (priceMin) params.priceMin = priceMin;
-  if (priceMax) params.priceMax = priceMax;
-  if (sizeMin) params.sizeMin = sizeMin;
-  if (sizeMax) params.sizeMax = sizeMax;
+  if (priceActive) {
+    if (priceRange[0] > PRICE_MIN) params.priceMin = priceRange[0];
+    if (priceRange[1] < PRICE_MAX) params.priceMax = priceRange[1];
+  }
+  if (sizeActive) {
+    if (sizeRange[0] > SIZE_MIN) params.sizeMin = sizeRange[0];
+    if (sizeRange[1] < SIZE_MAX) params.sizeMax = sizeRange[1];
+  }
 
   const { data, isLoading } = useGetListings(params as any, {
     query: { queryKey: getGetListingsQueryKey(params as any) },
@@ -243,11 +286,17 @@ export default function Listings() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / 24);
 
-  const activeFilterCount = [propertyType, bedrooms, emirate, community, furnished, priceMin, priceMax, sizeMin, sizeMax].filter(Boolean).length;
+  const priceFilterActive = priceActive && (priceRange[0] > PRICE_MIN || priceRange[1] < PRICE_MAX);
+  const sizeFilterActive = sizeActive && (sizeRange[0] > SIZE_MIN || sizeRange[1] < SIZE_MAX);
+  const activeFilterCount = [propertyType, bedrooms, emirate, community, viewType, furnished].filter(Boolean).length
+    + (priceFilterActive ? 1 : 0)
+    + (sizeFilterActive ? 1 : 0);
 
   const clearFilters = useCallback(() => {
     setPropertyType(""); setBedrooms(""); setEmirate(""); setCommunity("");
-    setFurnished(""); setPriceMin(""); setPriceMax(""); setSizeMin(""); setSizeMax("");
+    setViewType(""); setFurnished("");
+    setPriceRange([PRICE_MIN, PRICE_MAX]); setPriceActive(false);
+    setSizeRange([SIZE_MIN, SIZE_MAX]); setSizeActive(false);
     setPage(1);
   }, []);
 
@@ -320,13 +369,13 @@ export default function Listings() {
 
       {/* Expanded filters */}
       {showFilters && (
-        <div className="bg-card/60 border border-border/50 rounded-xl p-5 space-y-4">
-          {/* Row 1: Type + Beds + Emirate + Community */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-card/60 border border-border/50 rounded-xl p-5 space-y-5">
+          {/* Row 1: Type + Beds + Emirate + Community + View Type */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Property type</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Property type</label>
               <Select value={propertyType} onValueChange={(v) => { setPropertyType(v === "all" ? "" : v); setPage(1); }}>
-                <SelectTrigger className="bg-background/50"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectTrigger className="bg-background/50 h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any</SelectItem>
                   <SelectItem value="apartment">Apartment</SelectItem>
@@ -338,9 +387,9 @@ export default function Listings() {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Bedrooms</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Bedrooms</label>
               <Select value={bedrooms} onValueChange={(v) => { setBedrooms(v === "all" ? "" : v); setPage(1); }}>
-                <SelectTrigger className="bg-background/50"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectTrigger className="bg-background/50 h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any</SelectItem>
                   <SelectItem value="0">Studio</SelectItem>
@@ -353,9 +402,9 @@ export default function Listings() {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Emirate</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Emirate</label>
               <Select value={emirate} onValueChange={(v) => { setEmirate(v === "all" ? "" : v); setPage(1); }}>
-                <SelectTrigger className="bg-background/50"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectTrigger className="bg-background/50 h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any</SelectItem>
                   <SelectItem value="Dubai">Dubai</SelectItem>
@@ -365,9 +414,9 @@ export default function Listings() {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Community</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Community</label>
               <Select value={community} onValueChange={(v) => { setCommunity(v === "all" ? "" : v); setSearch(""); setPage(1); }}>
-                <SelectTrigger className="bg-background/50"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectTrigger className="bg-background/50 h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any</SelectItem>
                   {communities.map((c) => (
@@ -376,60 +425,84 @@ export default function Listings() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">View type</label>
+              <Select value={viewType} onValueChange={(v) => { setViewType(v === "all" ? "" : v); setPage(1); }}>
+                <SelectTrigger className="bg-background/50 h-9"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  <SelectItem value="Marina">Marina</SelectItem>
+                  <SelectItem value="Sea">Sea</SelectItem>
+                  <SelectItem value="City">City</SelectItem>
+                  <SelectItem value="Garden">Garden</SelectItem>
+                  <SelectItem value="None">No view</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Row 2: Price range + Size range + Furnished */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Price min (AED)</label>
-              <Input
-                type="number"
-                placeholder="0"
-                className="bg-background/50 font-mono text-sm"
-                value={priceMin}
-                onChange={(e) => { setPriceMin(e.target.value); setPage(1); }}
-              />
-            </div>
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Price max (AED)</label>
-              <Input
-                type="number"
-                placeholder="Any"
-                className="bg-background/50 font-mono text-sm"
-                value={priceMax}
-                onChange={(e) => { setPriceMax(e.target.value); setPage(1); }}
-              />
-            </div>
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Size min (sqft)</label>
-              <Input
-                type="number"
-                placeholder="0"
-                className="bg-background/50 font-mono text-sm"
-                value={sizeMin}
-                onChange={(e) => { setSizeMin(e.target.value); setPage(1); }}
-              />
-            </div>
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Size max (sqft)</label>
-              <Input
-                type="number"
-                placeholder="Any"
-                className="bg-background/50 font-mono text-sm"
-                value={sizeMax}
-                onChange={(e) => { setSizeMax(e.target.value); setPage(1); }}
-              />
-            </div>
-            <div className="col-span-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Furnished</label>
+          {/* Row 2: Furnished + Price slider + Size slider */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Furnished</label>
               <Select value={furnished} onValueChange={(v) => { setFurnished(v === "all" ? "" : v); setPage(1); }}>
-                <SelectTrigger className="bg-background/50"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectTrigger className="bg-background/50 h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any</SelectItem>
                   <SelectItem value="true">Furnished</SelectItem>
                   <SelectItem value="false">Unfurnished</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-xs text-muted-foreground">Price range</label>
+                <span className="text-xs font-mono text-foreground/80">
+                  {fmtPrice(priceRange[0])} – {priceRange[1] >= PRICE_MAX ? "Any" : fmtPrice(priceRange[1])}
+                </span>
+              </div>
+              <Slider
+                min={PRICE_MIN}
+                max={PRICE_MAX}
+                step={PRICE_STEP}
+                value={priceRange}
+                onValueChange={(vals) => {
+                  setPriceRange(vals as [number, number]);
+                  setPriceActive(true);
+                  setPage(1);
+                }}
+                className="py-1"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground/60">
+                <span>{fmtPrice(PRICE_MIN)}</span>
+                <span>{fmtPrice(PRICE_MAX)}+</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-xs text-muted-foreground">Size range</label>
+                <span className="text-xs font-mono text-foreground/80">
+                  {fmtSize(sizeRange[0])} – {sizeRange[1] >= SIZE_MAX ? "Any" : fmtSize(sizeRange[1])}
+                </span>
+              </div>
+              <Slider
+                min={SIZE_MIN}
+                max={SIZE_MAX}
+                step={SIZE_STEP}
+                value={sizeRange}
+                onValueChange={(vals) => {
+                  setSizeRange(vals as [number, number]);
+                  setSizeActive(true);
+                  setPage(1);
+                }}
+                className="py-1"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground/60">
+                <span>{fmtSize(SIZE_MIN)}</span>
+                <span>{fmtSize(SIZE_MAX)}+</span>
+              </div>
             </div>
           </div>
 
@@ -440,12 +513,21 @@ export default function Listings() {
               {bedrooms && <FilterChip label={bedrooms === "0" ? "Studio" : `${bedrooms} BR`} onRemove={() => setBedrooms("")} />}
               {emirate && <FilterChip label={emirate} onRemove={() => setEmirate("")} />}
               {community && <FilterChip label={community} onRemove={() => setCommunity("")} />}
+              {viewType && <FilterChip label={`${viewType} view`} onRemove={() => setViewType("")} />}
               {furnished === "true" && <FilterChip label="Furnished" onRemove={() => setFurnished("")} />}
               {furnished === "false" && <FilterChip label="Unfurnished" onRemove={() => setFurnished("")} />}
-              {priceMin && <FilterChip label={`≥ AED ${parseInt(priceMin).toLocaleString()}`} onRemove={() => setPriceMin("")} />}
-              {priceMax && <FilterChip label={`≤ AED ${parseInt(priceMax).toLocaleString()}`} onRemove={() => setPriceMax("")} />}
-              {sizeMin && <FilterChip label={`≥ ${sizeMin} sqft`} onRemove={() => setSizeMin("")} />}
-              {sizeMax && <FilterChip label={`≤ ${sizeMax} sqft`} onRemove={() => setSizeMax("")} />}
+              {priceFilterActive && (
+                <FilterChip
+                  label={`${fmtPrice(priceRange[0])} – ${priceRange[1] >= PRICE_MAX ? "Any" : fmtPrice(priceRange[1])}`}
+                  onRemove={() => { setPriceRange([PRICE_MIN, PRICE_MAX]); setPriceActive(false); }}
+                />
+              )}
+              {sizeFilterActive && (
+                <FilterChip
+                  label={`${fmtSize(sizeRange[0])} – ${sizeRange[1] >= SIZE_MAX ? "Any" : fmtSize(sizeRange[1])}`}
+                  onRemove={() => { setSizeRange([SIZE_MIN, SIZE_MAX]); setSizeActive(false); }}
+                />
+              )}
               <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline">
                 Clear all
               </button>
@@ -483,11 +565,7 @@ export default function Listings() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
-          <Button
-            variant="outline" size="sm"
-            disabled={page === 1}
-            onClick={() => setPage(p => p - 1)}
-          >
+          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex gap-1">
@@ -507,11 +585,7 @@ export default function Listings() {
               );
             })}
           </div>
-          <Button
-            variant="outline" size="sm"
-            disabled={page === totalPages}
-            onClick={() => setPage(p => p + 1)}
-          >
+          <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
