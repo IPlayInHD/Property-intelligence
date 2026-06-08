@@ -525,11 +525,27 @@ const LISTINGS_RAW: ListingSeedRow[] = [
   { source: "dubizzle",        community: "Dubai Hills",     emirate: "Dubai", buildingName: "Acacia",                    propertyType: "apartment", bedrooms: 2, sizeSqft: 1200, listedPrice: 1750000,  viewType: "Garden",    furnished: true,  daysAgo: 3 },
 ];
 
-function buildListingUrl(source: string, community: string, id: number): string {
-  const slug = community.toLowerCase().replace(/\s+/g, "-");
-  if (source === "bayut") return `https://www.bayut.com/to-buy/apartments-in-${slug}/${id}/`;
-  if (source === "propertyfinder") return `https://www.propertyfinder.ae/en/buy/apartments-in-${slug}-${id}.html`;
-  return `https://dubai.dubizzle.com/en/residences/apartments-for-sale/${slug}-${id}/`;
+function buildListingUrl(source: string, community: string, buildingName: string): string {
+  const bayutSlug: Record<string, string> = {
+    "Dubai Marina":    "dubai-marina",
+    "Downtown Dubai":  "downtown-dubai",
+    "JVC":             "jumeirah-village-circle",
+    "Business Bay":    "business-bay",
+    "Palm Jumeirah":   "palm-jumeirah",
+    "JBR":             "jumeirah-beach-residence",
+    "Arabian Ranches": "arabian-ranches",
+    "Mirdif":          "mirdif",
+    "Dubai Hills":     "dubai-hills-estate",
+  };
+  const enc = (s: string) => encodeURIComponent(s);
+  if (source === "bayut") {
+    const slug = bayutSlug[community] ?? community.toLowerCase().replace(/\s+/g, "-");
+    return `https://www.bayut.com/to-buy/property-in-${slug}/?keywords=${enc(buildingName)}`;
+  }
+  if (source === "propertyfinder") {
+    return `https://www.propertyfinder.ae/en/search/?c=1&t=1&q=${enc(buildingName + " " + community)}&ob=mr`;
+  }
+  return `https://dubai.dubizzle.com/en/residences/apartments-for-sale/?q=${enc(buildingName)}`;
 }
 
 async function seedListings() {
@@ -541,7 +557,7 @@ async function seedListings() {
     const psf = Math.round(l.listedPrice / l.sizeSqft);
     return {
       source: l.source,
-      listingUrl: buildListingUrl(l.source, l.community, i + 1001),
+      listingUrl: buildListingUrl(l.source, l.community, l.buildingName),
       community: l.community,
       emirate: l.emirate,
       buildingName: l.buildingName,

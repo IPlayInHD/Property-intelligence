@@ -252,7 +252,7 @@ export default function ListingDetail() {
   const communities = (communitiesData ?? []) as { id: number; name: string; emirate: string; latitude: number; longitude: number }[];
 
   const { data: listing, isLoading, isError } = useGetListing(numId, {
-    query: { queryKey: getGetListingQueryKey(numId), enabled: !isNaN(numId) },
+    query: { queryKey: getGetListingQueryKey(numId), enabled: !!id && !isNaN(numId) && numId > 0 },
   });
 
   const createMutation = useCreateAnalysis({
