@@ -54,8 +54,8 @@ router.get("/market/overview", async (_req, res) => {
       const key = `${row.community}||${row.emirate}`;
       if (!communityMap.has(key)) {
         communityMap.set(key, {
-          community: row.community,
-          emirate: row.emirate,
+          community: row.community ?? "",
+          emirate: row.emirate ?? "",
           quarters: [],
         });
       }

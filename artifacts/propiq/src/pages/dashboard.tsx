@@ -239,10 +239,10 @@ export default function Dashboard() {
                 {/* Rows */}
                 <div className="divide-y divide-border/30">
                   {marketPulse.communities.slice(0, 7).map((row, idx) => {
-                    const isUp = row.qoqChange !== null && row.qoqChange > 0;
-                    const isDown = row.qoqChange !== null && row.qoqChange < 0;
+                    const isUp = row.qoqChange != null && row.qoqChange > 0;
+                    const isDown = row.qoqChange != null && row.qoqChange < 0;
                     const isFlat =
-                      row.qoqChange === null ||
+                      row.qoqChange == null ||
                       (row.qoqChange >= -0.5 && row.qoqChange <= 0.5);
 
                     return (
@@ -297,7 +297,7 @@ export default function Dashboard() {
                               ) : (
                                 <Minus className="h-3.5 w-3.5" />
                               )}
-                              {row.qoqChange !== null
+                              {row.qoqChange != null
                                 ? `${row.qoqChange > 0 ? "+" : ""}${row.qoqChange.toFixed(1)}%`
                                 : "0.0%"}
                             </div>

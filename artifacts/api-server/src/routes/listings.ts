@@ -173,7 +173,7 @@ router.get("/listings", requireAuth, async (req: AuthRequest, res) => {
 // GET /listings/:id
 router.get("/listings/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid listing ID" });
       return;
