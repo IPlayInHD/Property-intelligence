@@ -6,6 +6,7 @@ import {
   getGetListingsQueryKey,
 } from "@workspace/api-client-react";
 import type { Listing } from "@workspace/api-client-react";
+import { getListingPhotoUrl, getListingSearchUrl } from "@/lib/listing-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -84,16 +85,23 @@ function ScoreBadge({ score }: { score: number | null | undefined }) {
 function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "list" }) {
   const gradient = communityGradient(listing.community);
   const hasReport = !!listing.existingAnalysisId;
+  const photoUrl = getListingPhotoUrl(listing.community, listing.propertyType);
+  const searchUrl = getListingSearchUrl(listing.source, listing.community, listing.propertyType);
+  const externalHref = listing.listingUrl ?? searchUrl;
 
   if (view === "list") {
     return (
       <div className="group flex gap-4 bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl p-4 transition-all">
         <Link href={`/listings/${listing.id}`} className="flex-1">
           <div className="flex gap-4">
-            <div className={`w-24 h-20 rounded-lg bg-gradient-to-br ${gradient} shrink-0 flex items-center justify-center`}>
-              <span className="text-white/80 text-xs font-medium text-center px-2 leading-tight">
-                {listing.community}
-              </span>
+            <div className={`w-24 h-20 rounded-lg bg-gradient-to-br ${gradient} shrink-0 relative overflow-hidden`}>
+              <img
+                src={photoUrl}
+                alt={listing.buildingName ?? listing.community ?? ""}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+              <div className="absolute inset-0 bg-black/20" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
@@ -138,14 +146,12 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
           </div>
         </Link>
         <div className="flex flex-col gap-2 justify-center shrink-0 ml-2">
-          {listing.listingUrl && (
-            <a href={listing.listingUrl} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs w-full">
-                <ExternalLink className="h-3 w-3" />
-                View Listing
-              </Button>
-            </a>
-          )}
+          <a href={externalHref} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs w-full">
+              <ExternalLink className="h-3 w-3" />
+              View Listing
+            </Button>
+          </a>
           <Link href={`/listings/${listing.id}`}>
             <Button size="sm" className="gap-1.5 text-xs w-full" variant={hasReport ? "secondary" : "default"}>
               <Zap className="h-3 w-3" />
@@ -160,19 +166,26 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
   return (
     <div className="group bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl overflow-hidden transition-all hover:shadow-md hover:shadow-primary/5 flex flex-col">
       <Link href={`/listings/${listing.id}`}>
-        <div className={`relative h-40 bg-gradient-to-br ${gradient} flex items-end p-4 cursor-pointer`}>
-          <div className="absolute top-3 left-3 flex gap-1.5">
+        <div className={`relative h-48 bg-gradient-to-br ${gradient} flex items-end p-4 cursor-pointer overflow-hidden`}>
+          <img
+            src={photoUrl}
+            alt={`${listing.buildingName ?? ""} ${listing.community ?? ""}`}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+          <div className="absolute top-3 left-3 flex gap-1.5 z-10">
             <SourceBadge source={listing.source} />
             {hasReport && <ScoreBadge score={listing.existingScore} />}
           </div>
           {listing.viewType && listing.viewType !== "None" && (
-            <span className="absolute top-3 right-3 text-[10px] bg-black/40 text-white px-1.5 py-0.5 rounded">
+            <span className="absolute top-3 right-3 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded z-10">
               {listing.viewType} view
             </span>
           )}
-          <div className="text-white">
-            <div className="text-xl font-bold font-mono">AED {listing.listedPrice?.toLocaleString()}</div>
-            <div className="text-xs text-white/70 font-mono">{listing.pricePerSqft?.toLocaleString()} /sqft</div>
+          <div className="text-white relative z-10">
+            <div className="text-xl font-bold font-mono drop-shadow">AED {listing.listedPrice?.toLocaleString()}</div>
+            <div className="text-xs text-white/80 font-mono">{listing.pricePerSqft?.toLocaleString()} /sqft</div>
           </div>
         </div>
       </Link>
@@ -202,15 +215,13 @@ function PropertyCard({ listing, view }: { listing: Listing; view: "grid" | "lis
           <span className="ml-auto">{listing.daysListed}d</span>
         </div>
         <div className="flex gap-2 mt-3">
-          {listing.listingUrl && (
-            <a href={listing.listingUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
-                <ExternalLink className="h-3 w-3" />
-                View Listing
-              </Button>
-            </a>
-          )}
-          <Link href={`/listings/${listing.id}`} className={listing.listingUrl ? "flex-1" : "w-full"}>
+          <a href={externalHref} target="_blank" rel="noopener noreferrer" className="flex-1">
+            <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
+              <ExternalLink className="h-3 w-3" />
+              View Listing
+            </Button>
+          </a>
+          <Link href={`/listings/${listing.id}`} className="flex-1">
             <Button size="sm" className="w-full gap-1.5 text-xs" variant={hasReport ? "secondary" : "default"}>
               <Zap className="h-3 w-3" />
               {hasReport ? "View Report" : "Run PropIQ Analysis"}

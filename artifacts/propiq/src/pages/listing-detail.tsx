@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-client-react";
 import type { Listing } from "@workspace/api-client-react";
 import CommunityMap from "@/components/ui/CommunityMap";
+import { getListingPhotoUrl, getListingSearchUrl } from "@/lib/listing-helpers";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -215,13 +216,21 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 // ─── Similar card ─────────────────────────────────────────────────────────────
 function SimilarCard({ listing }: { listing: Listing }) {
   const gradient = communityGradient(listing.community);
+  const photoUrl = getListingPhotoUrl(listing.community, listing.propertyType);
   return (
     <Link href={`/listings/${listing.id}`}>
       <div className="group bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 rounded-xl overflow-hidden cursor-pointer transition-all">
-        <div className={`h-28 bg-gradient-to-br ${gradient} flex items-end p-3`}>
-          <div className="text-white">
-            <div className="font-bold font-mono text-sm">AED {listing.listedPrice?.toLocaleString()}</div>
-            <div className="text-white/70 text-xs">{listing.pricePerSqft?.toLocaleString()} /sqft</div>
+        <div className={`h-28 bg-gradient-to-br ${gradient} flex items-end p-3 relative overflow-hidden`}>
+          <img
+            src={photoUrl}
+            alt={listing.buildingName ?? listing.community ?? ""}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <div className="text-white relative z-10">
+            <div className="font-bold font-mono text-sm drop-shadow">AED {listing.listedPrice?.toLocaleString()}</div>
+            <div className="text-white/80 text-xs">{listing.pricePerSqft?.toLocaleString()} /sqft</div>
           </div>
         </div>
         <div className="p-3">
@@ -312,6 +321,8 @@ export default function ListingDetail() {
   const hasReport = !!(listing as any).existingAnalysisId;
   const existingScore = (listing as any).existingScore;
   const similar = (listing as any).similar ?? [];
+  const photoUrl = getListingPhotoUrl(listing.community, listing.propertyType);
+  const externalHref = listing.listingUrl ?? getListingSearchUrl(listing.source, listing.community, listing.propertyType);
 
   const communityGeo = communities.find(
     (c) => c.name.toLowerCase() === (listing.community ?? "").toLowerCase()
@@ -351,7 +362,15 @@ export default function ListingDetail() {
 
         {/* Hero card */}
         <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${gradient}`}>
-          <div className="px-8 py-10">
+          {/* Background photo */}
+          <img
+            src={photoUrl}
+            alt={`${listing.buildingName ?? ""} ${listing.community ?? ""}`}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/70" />
+          <div className="relative px-8 py-10">
             {/* Top row */}
             <div className="flex items-start justify-between gap-4 mb-6">
               <div className="flex gap-2">
@@ -363,14 +382,12 @@ export default function ListingDetail() {
                   </div>
                 )}
               </div>
-              {listing.listingUrl && (
-                <a href={listing.listingUrl} target="_blank" rel="noopener noreferrer">
-                  <button className="text-white/70 hover:text-white text-xs flex items-center gap-1">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    View original
-                  </button>
-                </a>
-              )}
+              <a href={externalHref} target="_blank" rel="noopener noreferrer">
+                <button className="text-white/70 hover:text-white text-xs flex items-center gap-1">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  View on {listing.source === "bayut" ? "Bayut" : listing.source === "propertyfinder" ? "Property Finder" : "Dubizzle"}
+                </button>
+              </a>
             </div>
 
             {/* Price + title */}
