@@ -1,6 +1,7 @@
 import { db } from "@workspace/db";
 import { communitiesTable, macroDataTable, serviceChargesTable, usersTable, dldTransactionsTable, listingsTable } from "@workspace/db";
 import bcrypt from "bcryptjs";
+import { syncBayutListings } from "./lib/bayut-sync";
 
 const COMMUNITIES = [
   { name: "Dubai Marina", emirate: "Dubai", latitude: "25.0819", longitude: "55.1367", zone: "Dubai Marina" },
@@ -624,6 +625,15 @@ async function seed() {
     await seedListings();
   } else {
     console.log("Listings already seeded — skipping");
+  }
+
+  // Bayut live sync — only runs if RAPIDAPI_KEY is set
+  if (process.env.RAPIDAPI_KEY) {
+    console.log("RAPIDAPI_KEY detected — running Bayut sync...");
+    const synced = await syncBayutListings();
+    console.log(`Bayut sync complete: ${synced} listings upserted`);
+  } else {
+    console.log("RAPIDAPI_KEY not set — skipping Bayut sync");
   }
 
   console.log("Seed complete!");
