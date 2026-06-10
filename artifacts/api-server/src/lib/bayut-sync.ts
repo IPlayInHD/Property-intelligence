@@ -11,8 +11,9 @@ interface PFProperty {
   price?: { value?: number; currency?: string; period?: string };
   address?: { full_name?: string; coordinates?: { lat?: number; lon?: number } };
   images?: string[];
-  bedrooms?: number;
-  bathrooms?: number;
+  bedrooms?: string | number;
+  bathrooms?: string | number;
+  size?: { value?: number; unit?: string };
   area?: { value?: number; unit?: string };
   furnishing?: string;
   floor?: number;
@@ -20,6 +21,9 @@ interface PFProperty {
   description?: string;
   url?: string;
   reference?: string;
+  reference_number?: string;
+  listed_date?: string;
+  location_tree?: Array<{ id?: string; name?: string; level?: string | number }>;
 }
 
 interface SearchBuyResponse {
@@ -36,16 +40,29 @@ function parseEmirate(address: string): string {
   return "Dubai";
 }
 
-function parseCommunity(address: string): string | null {
-  // address format: "Building Name, Community, City, Emirate"
-  const parts = address.split(",").map((p) => p.trim());
-  if (parts.length >= 2) return parts[parts.length - 2] ?? null;
+function parseCommunity(locationTree?: PFProperty["location_tree"], address?: string): string | null {
+  if (locationTree && locationTree.length > 0) {
+    // level 1 = community (e.g. "Dubai Marina"), level 2 = sub-community
+    const sorted = [...locationTree].sort((a, b) => Number(b.level ?? 0) - Number(a.level ?? 0));
+    return sorted[0]?.name ?? null;
+  }
+  if (address) {
+    const parts = address.split(",").map((p) => p.trim());
+    if (parts.length >= 2) return parts[parts.length - 2] ?? null;
+  }
   return null;
 }
 
-function parseBuildingName(address: string): string | null {
-  const parts = address.split(",").map((p) => p.trim());
-  return parts[0] ?? null;
+function parseBuildingName(locationTree?: PFProperty["location_tree"], address?: string): string | null {
+  if (locationTree && locationTree.length > 0) {
+    const sorted = [...locationTree].sort((a, b) => Number(b.level ?? 0) - Number(a.level ?? 0));
+    if (sorted.length > 1) return sorted[0]?.name ?? null;
+  }
+  if (address) {
+    const parts = address.split(",").map((p) => p.trim());
+    return parts[0] ?? null;
+  }
+  return null;
 }
 
 function mapPropertyType(t?: string): string | null {
@@ -70,32 +87,36 @@ function mapProperty(prop: PFProperty): typeof listingsTable.$inferInsert | null
   const price = prop.price?.value ?? 0;
   if (price === 0) return null;
 
-  const id = prop.property_id ?? prop.reference ?? "";
-  if (!id) return null;
+  const refNum = prop.reference_number ?? prop.reference ?? prop.property_id ?? "";
+  if (!refNum) return null;
 
   const address = prop.address?.full_name ?? "";
-  const area = prop.area?.value ?? 0;
+  const area = (prop.size?.value ?? prop.area?.value) ?? 0;
   const pricePerSqft = area > 0 ? Math.round(price / area) : null;
+  const firstSeen = prop.listed_date
+    ? prop.listed_date.split("T")[0]
+    : new Date().toISOString().split("T")[0];
   const today = new Date().toISOString().split("T")[0];
 
+  // Use correct PropertyFinder URL format
   const listingUrl = prop.url
     ? prop.url.startsWith("http") ? prop.url : `https://www.propertyfinder.ae${prop.url}`
-    : `https://www.propertyfinder.ae/en/property-details-${id}.html`;
+    : `https://www.propertyfinder.ae/en/buy/property-for-sale-${refNum}.html`;
 
   return {
     source: "propertyfinder",
     listingUrl,
-    community: parseCommunity(address),
+    community: parseCommunity(prop.location_tree, address),
     emirate: parseEmirate(address),
-    buildingName: parseBuildingName(address),
+    buildingName: parseBuildingName(prop.location_tree, address),
     propertyType: mapPropertyType(prop.property_type),
-    bedrooms: prop.bedrooms ?? null,
+    bedrooms: prop.bedrooms != null ? Number(prop.bedrooms) : null,
     sizeSqft: area > 0 ? area.toFixed(2) : null,
     listedPrice: price.toFixed(2),
     pricePerSqft: pricePerSqft != null ? pricePerSqft.toFixed(2) : null,
     viewType: null,
     furnished: mapFurnished(prop.furnishing),
-    firstSeen: today,
+    firstSeen,
     lastSeen: today,
     daysListed: 0,
     isActive: true,
