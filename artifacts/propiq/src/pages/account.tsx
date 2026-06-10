@@ -333,8 +333,8 @@ export default function Account() {
               ) : !history?.length ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p className="mb-3">No analyses yet.</p>
-                  <Link href="/analysis/new">
-                    <Button variant="outline" size="sm">Run Your First Analysis</Button>
+                  <Link href="/listings">
+                    <Button variant="outline" size="sm">Browse Properties</Button>
                   </Link>
                 </div>
               ) : (

@@ -5,23 +5,20 @@ import {
   useGetListing,
   useCreateAnalysis,
   useGetAnalysis,
-  useGetCommunities,
   getGetListingQueryKey,
   getGetAnalysisQueryKey,
 } from "@workspace/api-client-react";
 import type { Listing } from "@workspace/api-client-react";
-import CommunityMap from "@/components/ui/CommunityMap";
 import { getListingPhotoUrl, getListingSearchUrl } from "@/lib/listing-helpers";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, BedDouble, Maximize2, ExternalLink,
   Zap, CheckCircle2, AlertCircle, TrendingUp,
   Building2, Eye, Sofa, Calendar, BarChart3,
-  Crown, X,
+  Crown,
 } from "lucide-react";
 
 function communityGradient(community: string | null | undefined): string {
@@ -257,9 +254,6 @@ export default function ListingDetail() {
   const [pendingAnalysisId, setPendingAnalysisId] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const { data: communitiesData } = useGetCommunities();
-  const communities = (communitiesData ?? []) as { id: number; name: string; emirate: string; latitude: number; longitude: number }[];
-
   const { data: listing, isLoading, isError } = useGetListing(numId, {
     query: { queryKey: getGetListingQueryKey(numId), enabled: !!id && !isNaN(numId) && numId > 0 },
   });
@@ -323,10 +317,6 @@ export default function ListingDetail() {
   const similar = (listing as any).similar ?? [];
   const photoUrl = getListingPhotoUrl(listing.community, listing.propertyType);
   const externalHref = listing.listingUrl ?? getListingSearchUrl(listing.source, listing.community, listing.propertyType);
-
-  const communityGeo = communities.find(
-    (c) => c.name.toLowerCase() === (listing.community ?? "").toLowerCase()
-  );
 
   const specs = [
     { icon: BedDouble, label: "Bedrooms", value: listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} BR` },
@@ -446,19 +436,6 @@ export default function ListingDetail() {
         </div>
 
         {/* Community map */}
-        {communityGeo && (
-          <div>
-            <h2 className="text-lg font-serif font-bold mb-3">Location</h2>
-            <CommunityMap
-              latitude={communityGeo.latitude}
-              longitude={communityGeo.longitude}
-              community={listing.community ?? ""}
-              emirate={listing.emirate ?? ""}
-              className="h-56 w-full"
-            />
-          </div>
-        )}
-
         {/* What PropIQ analyses */}
         {!hasReport && (
           <Card className="bg-primary/5 border-primary/20">
