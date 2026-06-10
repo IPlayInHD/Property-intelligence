@@ -1,0 +1,1 @@
+- [GitHub PAT for git push](github-pat-push.md) — fine-grained PATs fail at git transport; use classic PAT with repo scope + isomorphic-git from bash
