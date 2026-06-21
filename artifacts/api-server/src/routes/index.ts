@@ -10,6 +10,7 @@ import ingestionRouter from "./ingestion";
 import marketRouter from "./market";
 import listingsRouter from "./listings";
 import adminRouter from "./admin";
+import waitlistRouter from "./waitlist";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(ingestionRouter);
 router.use(marketRouter);
 router.use(listingsRouter);
 router.use(adminRouter);
+router.use(waitlistRouter);
 
 export default router;
