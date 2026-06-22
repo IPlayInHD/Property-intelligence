@@ -16,6 +16,7 @@ export function Navbar() {
           <a href="#features" className="hover:text-foreground transition-colors">Modules</a>
           <a href="#comparison" className="hover:text-foreground transition-colors">Compare</a>
           <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+          <Link href="/demo" className="hover:text-foreground transition-colors" style={{ color: "#C9A84C", fontWeight: 600 }}>Try Demo</Link>
         </nav>
 
         <div className="flex items-center gap-4">

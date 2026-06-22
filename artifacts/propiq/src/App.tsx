@@ -14,6 +14,7 @@ import Listings from "@/pages/listings";
 import ListingDetail from "@/pages/listing-detail";
 import AnalysisDetails from "@/pages/analysis-details";
 import Account from "@/pages/account";
+import Demo from "@/pages/demo";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/demo" component={Demo} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       
