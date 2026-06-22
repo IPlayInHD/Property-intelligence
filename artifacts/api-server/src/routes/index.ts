@@ -11,6 +11,7 @@ import marketRouter from "./market";
 import listingsRouter from "./listings";
 import adminRouter from "./admin";
 import waitlistRouter from "./waitlist";
+import demoFeedbackRouter from "./demoFeedback";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(marketRouter);
 router.use(listingsRouter);
 router.use(adminRouter);
 router.use(waitlistRouter);
+router.use(demoFeedbackRouter);
 
 export default router;

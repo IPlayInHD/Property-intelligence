@@ -7,3 +7,4 @@ export * from "./macro_data";
 export * from "./service_charges";
 export * from "./communities";
 export * from "./waitlist";
+export * from "./demoFeedback";
