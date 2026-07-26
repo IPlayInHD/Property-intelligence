@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "import-dld": "tsx ./src/import-dld.ts",
+    "test-apis": "tsx ./src/test-apis.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
