@@ -13,6 +13,7 @@
  */
 import { streamCsvRecords } from "./csv-stream.js";
 import { canonicalCommunity } from "./community-map.js";
+import { isKnownCommunity } from "./dld-reference.js";
 
 const SQM_TO_SQFT = 10.7639;
 const args = process.argv.slice(2);
@@ -33,6 +34,7 @@ async function main() {
   let headers: string[] = [];
   let batch: unknown[][] = [];
   const preview: unknown[] = [];
+  const unknownAreas = new Map<string, number>();
   let total = 0, kept = 0, skipped = 0;
 
   async function flush() {
@@ -56,9 +58,11 @@ async function main() {
 
     const totalValue = num(g("PROPERTY_TOTAL_VALUE"));
     const rawArea = num(g("ACTUAL_AREA"));
-    const community = canonicalCommunity(g("AREA_EN"));
+    const rawAreaName = g("AREA_EN");
+    const community = canonicalCommunity(rawAreaName);
     // floor of 10k AED drops the handful of obvious junk rows (e.g. value "402")
     if (!totalValue || totalValue < 10000 || !community) { skipped++; if (limit && total >= limit) break; continue; }
+    if (rawAreaName && !isKnownCommunity(rawAreaName)) unknownAreas.set(rawAreaName, (unknownAreas.get(rawAreaName) || 0) + 1);
 
     const sizeSqft = rawArea != null && rawArea > 0 ? +(areaUnit === "sqm" ? rawArea * SQM_TO_SQFT : rawArea).toFixed(2) : null;
     // a handful of rows have the AREA (in sqft) mistakenly copied into the value
@@ -87,6 +91,10 @@ async function main() {
     console.log("Detected columns:", headers);
     console.log("\nSample of mapped valuations (first 6 kept):");
     for (const p of preview) console.log("  ", JSON.stringify(p));
+    if (unknownAreas.size) {
+      console.log(`\n⚠️  ${unknownAreas.size} AREA_EN value(s) not in the official DLD community registry:`);
+      for (const [name, n] of [...unknownAreas].sort((a, b) => b[1] - a[1]).slice(0, 20)) console.log(`   ${n}×  ${name}`);
+    }
     console.log(`\nDRY RUN — nothing written. ${total.toLocaleString()} scanned → ${kept.toLocaleString()} would load, ${skipped.toLocaleString()} skipped.`);
   } else {
     console.log(`\nDone. ${total.toLocaleString()} scanned → loaded ${kept.toLocaleString()} valuations, skipped ${skipped.toLocaleString()}.`);

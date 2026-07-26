@@ -13,6 +13,7 @@
  */
 import { streamCsvRecords } from "./csv-stream.js";
 import { canonicalCommunity } from "./community-map.js";
+import { isKnownCommunity } from "./dld-reference.js";
 
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith("--"));
@@ -32,6 +33,7 @@ async function main() {
   let headers: string[] = [];
   let batch: unknown[][] = [];
   const preview: unknown[] = [];
+  const unknownAreas = new Map<string, number>();
   let total = 0, kept = 0, skipped = 0;
 
   async function flush() {
@@ -54,8 +56,10 @@ async function main() {
     const g = (n: string) => (idx![n] != null ? rec[idx![n]] ?? "" : "");
 
     const projectNumber = (g("PROJECT_NUMBER") || "").trim();
-    const community = canonicalCommunity(g("AREA_EN"));
+    const rawArea = g("AREA_EN");
+    const community = canonicalCommunity(rawArea);
     if (!projectNumber || !community) { skipped++; if (limit && total >= limit) break; continue; }
+    if (rawArea && !isKnownCommunity(rawArea)) unknownAreas.set(rawArea, (unknownAreas.get(rawArea) || 0) + 1);
 
     const row = [
       projectNumber,
@@ -90,6 +94,10 @@ async function main() {
     console.log("Detected columns:", headers);
     console.log("\nSample of mapped projects (first 6 kept):");
     for (const p of preview) console.log("  ", JSON.stringify(p));
+    if (unknownAreas.size) {
+      console.log(`\n⚠️  ${unknownAreas.size} AREA_EN value(s) not in the official DLD community registry:`);
+      for (const [name, n] of [...unknownAreas].sort((a, b) => b[1] - a[1]).slice(0, 20)) console.log(`   ${n}×  ${name}`);
+    }
     console.log(`\nDRY RUN — nothing written. ${total.toLocaleString()} scanned → ${kept.toLocaleString()} would load, ${skipped.toLocaleString()} skipped.`);
   } else {
     console.log(`\nDone. ${total.toLocaleString()} scanned → loaded ${kept.toLocaleString()} projects, skipped ${skipped.toLocaleString()}.`);
