@@ -8,3 +8,4 @@ export * from "./service_charges";
 export * from "./communities";
 export * from "./waitlist";
 export * from "./demoFeedback";
+export * from "./valuations";
