@@ -9,6 +9,7 @@
     "import-listings": "tsx ./src/import-listings.ts",
     "import-valuations": "tsx ./src/import-valuations.ts",
     "import-projects": "tsx ./src/import-projects.ts",
+    "import-price-index": "tsx ./src/import-price-index.ts",
     "test-apis": "tsx ./src/test-apis.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
