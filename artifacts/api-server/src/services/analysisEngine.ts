@@ -7,6 +7,7 @@ import { calculateForecast } from "./forecast";
 import { calculateLiquidity } from "./liquidity";
 import { calculateRentalYield } from "./rentalYield";
 import { calculateTrends } from "./trends";
+import { canonicalCommunity } from "./communityMap";
 import { getTierLimits } from "../middleware/tierAccess";
 import type { PriceFairnessResult } from "./priceFairness";
 
@@ -119,6 +120,10 @@ function computeOverallScore(results: Record<string, unknown>): number {
 export async function runAnalysis(analysisId: string, property: PropertyInput, userPlan: string): Promise<void> {
   const tierModules = getTierLimits(userPlan).modules;
   const results: Record<string, unknown> = {};
+
+  // Normalize the community so listing/portal names match how DLD data is stored
+  // (e.g. "Dubai Marina" ↔ DLD "Marsa Dubai"). Both sides use canonicalCommunity().
+  property = { ...property, community: canonicalCommunity(property.community) };
 
   try {
     // Run available modules based on tier

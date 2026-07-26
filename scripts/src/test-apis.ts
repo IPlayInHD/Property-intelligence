@@ -9,6 +9,7 @@
  * No secrets are printed. Uses native fetch (Node 18+).
  */
 import { detectColumns, mapRow, parseCsvLine } from "./dld-parse.js";
+import { canonicalCommunity } from "./community-map.js";
 
 type Status = "pass" | "fail" | "skip";
 interface Result { name: string; status: Status; detail: string; }
@@ -98,6 +99,11 @@ function testScaffold(name: string, env: string) {
 async function main() {
   console.log("\nOnyx Atlas — provider self-test\n" + "─".repeat(52));
   testDldParser();
+  // community normalization: DLD name ↔ portal name must meet
+  const c1 = canonicalCommunity("Marsa Dubai"), c2 = canonicalCommunity("Dubai Marina");
+  const c3 = canonicalCommunity("BUSINESS BAY"), c4 = canonicalCommunity("Business Bay");
+  add("Community normalization", c1 === c2 && c1 === "Dubai Marina" && c3 === c4 ? "pass" : "fail",
+    `Marsa Dubai→"${c1}" == Dubai Marina→"${c2}"; BUSINESS BAY→"${c3}"`);
   await testRapid();
   await testGoogle();
   await testDldGov();

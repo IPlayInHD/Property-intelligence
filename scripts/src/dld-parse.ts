@@ -4,6 +4,7 @@
  * with no database or filesystem dependency.
  */
 import crypto from "node:crypto";
+import { canonicalCommunity } from "./community-map.js";
 
 export const SQM_TO_SQFT = 10.7639;
 
@@ -96,7 +97,8 @@ export function mapRow(fields: string[], col: ColMap, opts: { areaUnit: string; 
   const rawSize = col.size >= 0 ? num(fields[col.size] ?? "") : null;
   const sizeSqft = rawSize != null ? +(opts.areaUnit === "sqm" ? rawSize * SQM_TO_SQFT : rawSize).toFixed(2) : null;
   const transactionDate = parseDate(fields[col.date] ?? "");
-  const community = (fields[col.area] || "").trim();
+  const rawArea = (fields[col.area] || "").trim();
+  const community = canonicalCommunity(rawArea); // DLD area name → canonical community
   if (!salePrice || !transactionDate || !community) return null;
 
   const pricePerSqft = sizeSqft && sizeSqft > 0 ? +(salePrice / sizeSqft).toFixed(2) : null;
