@@ -16,7 +16,6 @@
  */
 import fs from "node:fs";
 import readline from "node:readline";
-import { pool } from "@workspace/db";
 import { parseCsvLine, detectColumns, mapRow, type ColMap } from "./dld-parse.js";
 
 const args = process.argv.slice(2);
@@ -31,16 +30,20 @@ const groupFilter = opt("group", "Sales").toLowerCase();
 const emirate = opt("emirate", "Dubai");
 const batchSize = parseInt(opt("batch", "1000"), 10);
 const limit = parseInt(opt("limit", "0"), 10);
+const dryRun = args.includes("--dry-run"); // read + map + preview, write nothing (no DB needed)
 
 async function main() {
+  // Only connect to the database for a real load — a dry run needs no DATABASE_URL.
+  const pool = dryRun ? null : (await import("@workspace/db")).pool;
   const rl = readline.createInterface({ input: fs.createReadStream(file!, "utf8"), crlfDelay: Infinity });
   let col: ColMap | null = null;
   let headers: string[] | null = null;
   let batch: unknown[][] = [];
+  const preview: unknown[] = [];
   let total = 0, kept = 0, skipped = 0;
 
   async function flush() {
-    if (!batch.length) return;
+    if (!batch.length || !pool) { batch = []; return; }
     const cols = 11;
     const values: unknown[] = [];
     const tuples = batch.map((row, i) => {
@@ -75,16 +78,27 @@ async function main() {
     const m = mapRow(fields, col, { areaUnit, groupFilter, emirate });
     if (!m) { skipped++; }
     else {
-      batch.push([m.transactionId, m.community, m.buildingName, m.propertyType, m.bedrooms, m.sizeSqft, m.salePrice, m.pricePerSqft, m.transactionDate, m.emirate, m.floorNumber]);
       kept++;
-      if (batch.length >= batchSize) await flush();
-      if (kept % 50000 === 0) console.log(`  …${kept.toLocaleString()} sales loaded (${total.toLocaleString()} rows scanned)`);
+      if (dryRun) { if (preview.length < 5) preview.push({ community: m.community, type: m.propertyType, beds: m.bedrooms, sqft: m.sizeSqft, price: m.salePrice, psf: m.pricePerSqft, date: m.transactionDate, building: m.buildingName }); }
+      else {
+        batch.push([m.transactionId, m.community, m.buildingName, m.propertyType, m.bedrooms, m.sizeSqft, m.salePrice, m.pricePerSqft, m.transactionDate, m.emirate, m.floorNumber]);
+        if (batch.length >= batchSize) await flush();
+        if (kept % 50000 === 0) console.log(`  …${kept.toLocaleString()} sales loaded (${total.toLocaleString()} rows scanned)`);
+      }
     }
     if (limit && total >= limit) break;
   }
   await flush();
-  await pool.end();
-  console.log(`\nDone. Scanned ${total.toLocaleString()} rows → loaded ${kept.toLocaleString()} ${groupFilter} transactions, skipped ${skipped.toLocaleString()}.`);
+  if (pool) await pool.end();
+
+  if (dryRun) {
+    console.log("\nSample of mapped rows (first 5 kept):");
+    for (const p of preview) console.log("  ", JSON.stringify(p));
+    console.log(`\nDRY RUN — nothing written. Scanned ${total.toLocaleString()} rows → ${kept.toLocaleString()} ${groupFilter} would load, ${skipped.toLocaleString()} skipped.`);
+    console.log("If the columns and sample values look right, re-run WITHOUT --dry-run to load.");
+  } else {
+    console.log(`\nDone. Scanned ${total.toLocaleString()} rows → loaded ${kept.toLocaleString()} ${groupFilter} transactions, skipped ${skipped.toLocaleString()}.`);
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
