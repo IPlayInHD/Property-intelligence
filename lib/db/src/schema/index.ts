@@ -9,3 +9,4 @@ export * from "./communities";
 export * from "./waitlist";
 export * from "./demoFeedback";
 export * from "./valuations";
+export * from "./projects";

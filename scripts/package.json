@@ -8,6 +8,7 @@
     "import-dld": "tsx ./src/import-dld.ts",
     "import-listings": "tsx ./src/import-listings.ts",
     "import-valuations": "tsx ./src/import-valuations.ts",
+    "import-projects": "tsx ./src/import-projects.ts",
     "test-apis": "tsx ./src/test-apis.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
